@@ -32,7 +32,6 @@
     <button class="tab active" data-tab="dashboard" data-i18n="tab_dashboard">Dashboard</button>
     <button class="tab" data-tab="richieste" data-i18n="tab_richieste">Richieste</button>
     <button class="tab" data-tab="appuntamenti" data-i18n="tab_appuntamenti">Appuntamenti</button>
-    <button class="tab" data-tab="dati" data-i18n="tab_dati">Dati e SQL</button>
   </nav>
 
   <main>
@@ -213,24 +212,6 @@
         </tr></thead>
         <tbody></tbody>
       </table>
-    </section>
-
-    <!-- ============ DATI E SQL ============ -->
-    <section id="dati" class="panel">
-      <h2 data-i18n="h_modello_dati">Modello dati e query</h2>
-      <p data-i18n="p_modello">Il database SQLite ha quattro tabelle con chiavi esterne e vincoli CHECK.</p>
-      <pre class="code-block" id="schema-view">Caricamento schema…</pre>
-      <h3 data-i18n="h_esempio_query">Esempio di query dei KPI</h3>
-      <pre class="code-block">-- Tasso di conversione per canale (utm_source)
-SELECT r.canale,
-       COUNT(DISTINCT r.id)           AS richieste,
-       COUNT(DISTINCT a.richiesta_id) AS con_appuntamento,
-       ROUND(100.0 * COUNT(DISTINCT a.richiesta_id)
-             / COUNT(DISTINCT r.id), 1) AS tasso
-FROM richieste r
-LEFT JOIN appuntamenti a ON a.richiesta_id = r.id
-GROUP BY r.canale
-ORDER BY tasso DESC;</pre>
     </section>
   </main>
 
