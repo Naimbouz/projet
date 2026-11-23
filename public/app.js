@@ -39,6 +39,7 @@ const I18N = {
     kpi_tasso_medio: 'Tasso di conversione medio', kpi_in_attesa: 'In attesa da oltre 2 giorni',
     esito_registrata: 'Richiesta registrata ✔', esito_errore: 'Errore imprevisto',
     prom_result: 'Promemoria inviati: {0} (saltati: {1})', inviato: 'inviato',
+    lbl_password: 'Password', btn_entra: 'Entra', btn_logout: 'Esci', login_errore: 'Password errata',
   },
   fr: {
     tagline: 'Demandes, rendez-vous et rappels — démo', badge_demo: 'données fictives',
@@ -65,6 +66,7 @@ const I18N = {
     kpi_tasso_medio: 'Taux de conversion moyen', kpi_in_attesa: 'En attente depuis plus de 2 jours',
     esito_registrata: 'Demande enregistrée ✔', esito_errore: 'Erreur inattendue',
     prom_result: 'Rappels envoyés : {0} (ignorés : {1})', inviato: 'envoyé',
+    lbl_password: 'Mot de passe', btn_entra: 'Entrer', btn_logout: 'Déconnexion', login_errore: 'Mot de passe incorrect',
   },
 };
 
@@ -280,11 +282,60 @@ $('#btn-lang').addEventListener('click', async () => {
   await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti()]);
 });
 
+// --- Autenticazione (schermata di login) -----------------------------------
+function mostraLogin() {
+  $('#login-screen').hidden = false;
+  $('#app').hidden = true;
+}
+function mostraApp() {
+  $('#login-screen').hidden = true;
+  $('#app').hidden = false;
+}
+
+$('#form-login').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const esito = $('#login-esito');
+  try {
+    await api('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: $('#login-password').value }),
+    });
+    esito.textContent = '';
+    mostraApp();
+    await init();
+  } catch {
+    esito.textContent = t('login_errore');
+    esito.className = 'esito err';
+  }
+});
+
+$('#btn-logout').addEventListener('click', async () => {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch { /* ignora */ }
+  location.reload();
+});
+
 // --- Avvio -----------------------------------------------------------------
 async function init() {
-  applyI18n();                       // applica la lingua salvata
   catturaUtm();
   await caricaSedi();
   await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti()]);
 }
-init().catch((e) => console.error('Errore di inizializzazione', e));
+
+// Punto d'ingresso: controlla la sessione, poi mostra login o app.
+async function avvio() {
+  applyI18n();                       // traduce anche la schermata di login
+  let autenticato = false;
+  try {
+    const s = await (await fetch('/api/session')).json();
+    autenticato = s.authenticated;
+  } catch { /* server non raggiungibile */ }
+
+  if (autenticato) {
+    mostraApp();
+    await init();
+  } else {
+    mostraLogin();
+  }
+}
+avvio().catch((e) => console.error('Errore di inizializzazione', e));
