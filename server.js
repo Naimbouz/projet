@@ -239,9 +239,9 @@ app.patch('/api/appuntamenti/:id', (req, res) => {
 
 // POST /api/promemoria/esegui : lancia l'automazione dei promemoria.
 // Corpo: { ore_prima?: number, canale?: 'whatsapp'|'sms'|'email' }
-app.post('/api/promemoria/esegui', (req, res) => {
+app.post('/api/promemoria/esegui', async (req, res) => {
   try {
-    const risultato = eseguiPromemoria(db, {
+    const risultato = await eseguiPromemoria(db, {
       orePrima: req.body?.ore_prima ?? 24,
       canale: req.body?.canale ?? 'whatsapp',
     });

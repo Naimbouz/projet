@@ -1,5 +1,6 @@
 // Automazione dei promemoria appuntamenti.
-// L'invio è SIMULATO: non contatta servizi reali, scrive solo nel log.
+// Email: invio REALE via Brevo (gratuito) se BREVO_API_KEY è configurata,
+// altrimenti (e per gli altri canali) l'invio è SIMULATO (scrive nel log).
 
 import { CANALI_PROMEMORIA } from './validation.js';
 
@@ -31,18 +32,50 @@ function destinatarioPerCanale(app, canale) {
   return app.telefono;                           // whatsapp / sms
 }
 
-/** Invio simulato di un messaggio (qui si collegherebbe un servizio reale). */
-function inviaMessaggioSimulato(canale, destinatario, messaggio) {
-  console.log(`[PROMEMORIA ${canale}] -> ${destinatario}: ${messaggio}`);
-  return true; // in un sistema reale: esito della chiamata all'API del provider
+// Invio reale di un'email tramite l'API di Brevo (HTTP, nessuna libreria).
+// Richiede le variabili d'ambiente BREVO_API_KEY e MITTENTE_EMAIL.
+async function inviaEmailBrevo(destinatario, nome, oggetto, messaggio) {
+  const r = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: process.env.MITTENTE_NOME || 'SmileFlow', email: process.env.MITTENTE_EMAIL },
+      to: [{ email: destinatario, name: nome }],
+      subject: oggetto,
+      textContent: messaggio,
+    }),
+  });
+  if (!r.ok) {
+    const corpo = await r.text().catch(() => '');
+    throw new Error(`Brevo ${r.status}: ${corpo.slice(0, 140)}`);
+  }
 }
 
 /**
- * Esegue l'automazione: trova gli appuntamenti, invia i promemoria (simulati),
- * scrive nel log e aggiorna lo stato.
- * @returns {{ inviati: number, saltati: object[], dettagli: object[] }}
+ * Invia un messaggio. Email reale via Brevo se configurato; altrimenti simulato.
+ * @returns {Promise<'reale'|'simulato'>}
  */
-export function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp' } = {}) {
+async function inviaMessaggio(canale, destinatario, nome, oggetto, messaggio) {
+  if (canale === 'email' && process.env.BREVO_API_KEY && process.env.MITTENTE_EMAIL) {
+    await inviaEmailBrevo(destinatario, nome, oggetto, messaggio);
+    return 'reale';
+  }
+  // Nessun provider configurato (o canale non email): simulazione nel log.
+  console.log(`[PROMEMORIA ${canale}] -> ${destinatario}: ${messaggio}`);
+  return 'simulato';
+}
+
+/**
+ * Esegue l'automazione: trova gli appuntamenti, invia i promemoria,
+ * scrive nel log e aggiorna lo stato. Se l'invio reale fallisce,
+ * l'appuntamento NON viene marcato (così può essere ritentato).
+ * @returns {Promise<{ inviati: number, saltati: object[], dettagli: object[] }>}
+ */
+export async function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp' } = {}) {
   if (!CANALI_PROMEMORIA.includes(canale)) {
     throw new Error(`canale non valido: ${canale}`);
   }
@@ -68,15 +101,20 @@ export function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp' } = {}
       saltati.push({ appuntamento_id: app.id, motivo: `nessun recapito per il canale ${canale}` });
       continue;
     }
+    const oggetto = `Promemoria appuntamento - ${app.sede_nome}`;
     const messaggio =
       `Gentile ${app.nome}, le ricordiamo il suo appuntamento presso ` +
       `${app.sede_nome} il ${app.data_ora}. Risponda per confermare.`;
 
-    inviaMessaggioSimulato(canale, destinatario, messaggio);
-    insLog.run(app.id, canale, destinatario, messaggio);
-    segnaInviato.run(app.id);
-
-    dettagli.push({ appuntamento_id: app.id, canale, destinatario, messaggio });
+    try {
+      const esito = await inviaMessaggio(canale, destinatario, app.nome, oggetto, messaggio);
+      insLog.run(app.id, canale, destinatario, messaggio);
+      segnaInviato.run(app.id);
+      dettagli.push({ appuntamento_id: app.id, canale, destinatario, messaggio, esito });
+    } catch (e) {
+      // Invio fallito (es. email rifiutata): registriamo ma non marchiamo inviato.
+      saltati.push({ appuntamento_id: app.id, motivo: e.message });
+    }
   }
 
   return { inviati: dettagli.length, saltati, dettagli };
