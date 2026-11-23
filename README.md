@@ -17,6 +17,16 @@ dentistici.
 - Automatizza l'invio dei **promemoria** per gli appuntamenti imminenti
   (invio simulato su WhatsApp / SMS / email con registro).
 
+### Funzioni per l'amministratore
+
+- **Cruscotto** con riepilogo di oggi, **grafico** dell'andamento richieste
+  (14 giorni) e KPI.
+- **Ricerca e filtri** sulle richieste (testo, sede, periodo, canale, stato).
+- **Esportazione CSV** delle richieste filtrate.
+- **Fissare un appuntamento** da una richiesta (che diventa "convertita").
+- **Gestione dello stato** di richieste e appuntamenti.
+- Interfaccia **bilingue IT/FR** e notifiche (toast).
+
 ## Tecnologie
 
 | Ambito        | Scelta              | Perché |
@@ -75,10 +85,13 @@ docs/workflow.md  workflow di automazione in stile n8n
 |--------|------------------------------|-------------|
 | GET    | `/api/sedi`                  | Elenco delle sedi |
 | POST   | `/api/richieste`             | Registra una richiesta (validazione lato server) |
-| GET    | `/api/richieste`             | Elenco con filtri `sede` e `periodo` (giorni) |
+| GET    | `/api/richieste`             | Elenco con filtri `sede`, `periodo`, `canale`, `stato`, `q` (ricerca) |
+| GET    | `/api/richieste/export.csv`  | Esporta in CSV le richieste filtrate |
 | PATCH  | `/api/richieste/:id`         | Aggiorna lo `stato` della richiesta |
-| GET    | `/api/stats`                 | KPI: conversione per canale, costo per appuntamento, richieste in attesa |
+| GET    | `/api/stats`                 | KPI: riepilogo di oggi, andamento 14 giorni, conversione, costo, in attesa |
 | GET    | `/api/appuntamenti`          | Elenco appuntamenti (filtro opzionale `entro_ore`) |
+| POST   | `/api/appuntamenti`          | Fissa un appuntamento da una richiesta (la marca "convertita") |
+| PATCH  | `/api/appuntamenti/:id`      | Aggiorna lo `stato` dell'appuntamento |
 | POST   | `/api/promemoria/esegui`     | Lancia l'automazione dei promemoria |
 
 ### Esempi

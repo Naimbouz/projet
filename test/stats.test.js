@@ -1,7 +1,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../db.js';
-import { conversionePerCanale, costoPerAppuntamento, richiesteInAttesa } from '../stats.js';
+import { conversionePerCanale, costoPerAppuntamento, richiesteInAttesa, andamentoRichieste, riepilogoOggi } from '../stats.js';
 
 // Database in memoria con dati controllati (non casuali) per asserzioni precise.
 let db;
@@ -71,4 +71,21 @@ test('richieste in attesa oltre 2 giorni: filtra per stato e data', () => {
   assert.ok(!nomi.includes('Vecchia convertita'));
   // Le richieste A/B/C sono di oggi -> non devono comparire.
   assert.ok(!nomi.includes('A'));
+});
+
+test('andamento richieste: serie continua di N giorni, oggi incluso', () => {
+  const serie = andamentoRichieste(db, 14);
+  assert.equal(serie.length, 14);
+  // A, B, C sono state create oggi -> l'ultimo giorno deve valere almeno 3.
+  const oggi = new Date().toISOString().slice(0, 10);
+  const ultimo = serie[serie.length - 1];
+  assert.equal(ultimo.giorno, oggi);
+  assert.ok(ultimo.totale >= 3);
+});
+
+test('riepilogo oggi: conta richieste e appuntamenti del giorno', () => {
+  const r = riepilogoOggi(db);
+  assert.equal(r.richieste_oggi, 3);            // A, B, C
+  // Gli appuntamenti del seed di test sono tra +1 giorno -> 0 "oggi", ma 2 nelle prossime 24h.
+  assert.equal(r.appuntamenti_prossimi_24h, 2);
 });
