@@ -195,6 +195,7 @@ input, select, textarea {
 .toast.err { background: var(--danger); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+.hint { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 .esito { margin-left: 12px; font-size: 14px; }
 .esito.ok { color: var(--ok); }
 .esito.err { color: var(--danger); }

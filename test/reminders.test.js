@@ -51,6 +51,19 @@ test('canale email senza indirizzo: appuntamento saltato', async () => {
   assert.equal(r.saltati.length, 1);
 });
 
+test('selezione per id: avvisa l\'appuntamento scelto anche fuori finestra', async () => {
+  // Appuntamento a +100h: fuori da qualsiasi finestra ragionevole...
+  db.prepare("UPDATE appuntamenti SET data_ora = datetime('now','+100 hours') WHERE id = 1").run();
+  // ...ma scegliendolo esplicitamente deve partire lo stesso.
+  const r = await eseguiPromemoria(db, { canale: 'whatsapp', ids: [1] });
+  assert.equal(r.inviati, 1);
+  assert.equal(r.dettagli[0].appuntamento_id, 1);
+
+  // Idempotente anche in modalità selezione.
+  const r2 = await eseguiPromemoria(db, { canale: 'whatsapp', ids: [1] });
+  assert.equal(r2.inviati, 0);
+});
+
 test('canale non valido: errore', async () => {
   await assert.rejects(() => eseguiPromemoria(db, { canale: 'piccione' }), /canale non valido/);
 });

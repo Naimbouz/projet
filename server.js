@@ -244,6 +244,7 @@ app.post('/api/promemoria/esegui', async (req, res) => {
     const risultato = await eseguiPromemoria(db, {
       orePrima: req.body?.ore_prima ?? 24,
       canale: req.body?.canale ?? 'whatsapp',
+      ids: req.body?.ids ?? null,
     });
     res.json(risultato);
   } catch (e) {
