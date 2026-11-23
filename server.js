@@ -22,6 +22,13 @@ function periodoToDate(periodo) {
   return `-${giorni} days`;
 }
 
+// --- SEDI ------------------------------------------------------------------
+
+// GET /api/sedi : elenco delle sedi (per i menu a tendina del front-end).
+app.get('/api/sedi', (req, res) => {
+  res.json(db.prepare('SELECT * FROM sedi ORDER BY nome').all());
+});
+
 // --- RICHIESTE -------------------------------------------------------------
 
 // POST /api/richieste : registra una nuova richiesta di contatto.
