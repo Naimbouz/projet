@@ -1,0 +1,23 @@
+{
+  "name": "smileflow",
+  "version": "1.0.0",
+  "description": "SmileFlow - gestione richieste e promemoria per cliniche dentali (demo full-stack)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "express",
+    "sqlite",
+    "crm",
+    "dental",
+    "automation"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
