@@ -416,15 +416,6 @@ $('#btn-promemoria').addEventListener('click', async () => {
   }
 });
 
-// --- 5) Vista schema (tab Dati e SQL) --------------------------------------
-$('#schema-view').textContent = `sedi(id, nome, citta, telefono)
-richieste(id, nome, telefono, email, sede_id -> sedi,
-          canale, trattamento, stato, costo_acquisizione, note, creata_il)
-appuntamenti(id, richiesta_id -> richieste, sede_id -> sedi,
-             data_ora, stato, promemoria_inviato, creato_il)
-promemoria_log(id, appuntamento_id -> appuntamenti,
-               canale, destinatario, messaggio, inviato_il)`;
-
 // --- Bottone di traduzione "a caldo" ---------------------------------------
 $('#btn-lang').addEventListener('click', async () => {
   lang = lang === 'it' ? 'fr' : 'it';
