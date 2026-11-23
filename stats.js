@@ -68,9 +68,53 @@ export function richiesteInAttesa(db) {
     .all();
 }
 
+/**
+ * Andamento delle richieste negli ultimi N giorni (per il grafico).
+ * I giorni senza richieste vengono riempiti con 0 in JavaScript.
+ */
+export function andamentoRichieste(db, giorni = 14) {
+  const righe = db
+    .prepare(
+      `SELECT date(creata_il) AS giorno, COUNT(*) AS totale
+       FROM richieste
+       WHERE creata_il >= date('now', ?)
+       GROUP BY giorno`
+    )
+    .all(`-${giorni - 1} days`);
+
+  const conteggi = new Map(righe.map((r) => [r.giorno, r.totale]));
+  const serie = [];
+  for (let i = giorni - 1; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+    const giorno = d.toISOString().slice(0, 10);
+    serie.push({ giorno, totale: conteggi.get(giorno) || 0 });
+  }
+  return serie;
+}
+
+/** Riepilogo operativo "di oggi" per le card in alto. */
+export function riepilogoOggi(db) {
+  const richiesteOggi = db
+    .prepare("SELECT COUNT(*) c FROM richieste WHERE date(creata_il) = date('now')")
+    .get().c;
+  const appuntamentiOggi = db
+    .prepare("SELECT COUNT(*) c FROM appuntamenti WHERE date(data_ora) = date('now') AND stato != 'annullato'")
+    .get().c;
+  const prossimi24h = db
+    .prepare(
+      `SELECT COUNT(*) c FROM appuntamenti
+       WHERE stato IN ('programmato','confermato')
+         AND data_ora > datetime('now') AND data_ora <= datetime('now','+24 hours')`
+    )
+    .get().c;
+  return { richieste_oggi: richiesteOggi, appuntamenti_oggi: appuntamentiOggi, appuntamenti_prossimi_24h: prossimi24h };
+}
+
 /** Raggruppa tutti i KPI in un unico oggetto. */
 export function tuttiGliStats(db) {
   return {
+    riepilogo_oggi: riepilogoOggi(db),
+    andamento_richieste: andamentoRichieste(db),
     conversione_per_canale: conversionePerCanale(db),
     costo_per_appuntamento: costoPerAppuntamento(db),
     richieste_in_attesa_oltre_2_giorni: richiesteInAttesa(db),
