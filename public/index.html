@@ -32,6 +32,7 @@
     <button class="tab active" data-tab="dashboard" data-i18n="tab_dashboard">Dashboard</button>
     <button class="tab" data-tab="richieste" data-i18n="tab_richieste">Richieste</button>
     <button class="tab" data-tab="appuntamenti" data-i18n="tab_appuntamenti">Appuntamenti</button>
+    <button class="tab" data-tab="promemoria" data-i18n="tab_promemoria">Promemoria</button>
   </nav>
 
   <main>
@@ -182,11 +183,36 @@
 
     <!-- ============ APPUNTAMENTI ============ -->
     <section id="appuntamenti" class="panel">
+      <h2 data-i18n="h_appuntamenti_prog">Appuntamenti in programma</h2>
+      <table class="data-table" id="tab-appuntamenti">
+        <thead><tr>
+          <th data-i18n="th_dataora">Data/ora</th>
+          <th data-i18n="th_paziente">Paziente</th>
+          <th data-i18n="th_telefono">Telefono</th>
+          <th data-i18n="th_sede">Sede</th>
+          <th data-i18n="th_stato">Stato</th>
+          <th data-i18n="th_promemoria">Promemoria</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- ============ PROMEMORIA (automazione) ============ -->
+    <section id="promemoria" class="panel">
       <h2 data-i18n="h_automazione">Automazione promemoria</h2>
       <div class="form-card">
         <div class="filters">
-          <label data-i18n="lbl_ore_prima">Ore prima dell'appuntamento
-            <input type="number" id="prom-ore" value="24" min="1" />
+          <label data-i18n="lbl_sede">Sede
+            <select id="prom-sede"><option value="" data-i18n="opt_tutte">Tutte</option></select>
+          </label>
+          <label data-i18n="lbl_finestra">Finestra temporale
+            <select id="prom-finestra">
+              <option value="" data-i18n="opt_tutti">Tutti</option>
+              <option value="24" data-i18n="opt_f24">Entro 24 ore</option>
+              <option value="48" data-i18n="opt_f48">Entro 48 ore</option>
+              <option value="72" data-i18n="opt_f72">Entro 72 ore</option>
+              <option value="168" data-i18n="opt_f168">Entro 7 giorni</option>
+            </select>
           </label>
           <label data-i18n="th_canale">Canale
             <select id="prom-canale">
@@ -197,20 +223,18 @@
           </label>
           <button id="btn-promemoria" class="btn-primary" data-i18n="btn_promemoria">Esegui promemoria</button>
         </div>
-        <p class="hint" data-i18n="prom_hint">Spunta gli appuntamenti da avvisare; se non spunti nulla, si usano le "ore prima".</p>
+        <p class="hint" data-i18n="prom_hint">Spunta gli appuntamenti da avvisare; se non spunti nulla, verranno avvisati tutti quelli elencati.</p>
         <span id="prom-esito" class="esito"></span>
       </div>
 
-      <h2 data-i18n="h_appuntamenti_prog">Appuntamenti in programma</h2>
-      <table class="data-table" id="tab-appuntamenti">
+      <h3 data-i18n="h_da_avvisare">Appuntamenti da avvisare</h3>
+      <table class="data-table" id="tab-promemoria">
         <thead><tr>
           <th><input type="checkbox" id="sel-tutti" title="Seleziona tutti" /></th>
           <th data-i18n="th_dataora">Data/ora</th>
           <th data-i18n="th_paziente">Paziente</th>
-          <th data-i18n="th_telefono">Telefono</th>
+          <th data-i18n="th_contatto">Contatto</th>
           <th data-i18n="th_sede">Sede</th>
-          <th data-i18n="th_stato">Stato</th>
-          <th data-i18n="th_promemoria">Promemoria</th>
         </tr></thead>
         <tbody></tbody>
       </table>

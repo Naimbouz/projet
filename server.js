@@ -166,8 +166,20 @@ app.get('/api/stats', (req, res) => {
 // GET /api/appuntamenti : elenco appuntamenti con i dati del paziente e della sede.
 // Filtro opzionale "entro_ore": solo quelli futuri entro N ore.
 app.get('/api/appuntamenti', (req, res) => {
-  const condizioni = ["a.stato IN ('programmato', 'confermato', 'completato', 'annullato')"];
+  const condizioni = [];
   const parametri = [];
+
+  // da_avvisare=1 : solo gli appuntamenti idonei a un promemoria.
+  if (req.query.da_avvisare === '1') {
+    condizioni.push("a.promemoria_inviato = 0 AND a.stato IN ('programmato','confermato') AND a.data_ora > datetime('now')");
+  } else {
+    condizioni.push("a.stato IN ('programmato', 'confermato', 'completato', 'annullato')");
+  }
+
+  if (req.query.sede) {
+    condizioni.push('a.sede_id = ?');
+    parametri.push(Number(req.query.sede));
+  }
 
   const entroOre = Number(req.query.entro_ore);
   if (Number.isInteger(entroOre) && entroOre > 0) {

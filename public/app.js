@@ -88,7 +88,10 @@ const I18N = {
     btn_export: 'Esporta CSV', th_azioni: 'Azioni',
     btn_fissa: 'Fissa appuntamento', btn_conferma: 'Conferma', btn_annulla: 'Annulla',
     toast_appuntamento_ok: 'Appuntamento fissato', toast_stato_ok: 'Stato aggiornato', toast_errore: 'Operazione non riuscita',
-    prom_hint: 'Spunta gli appuntamenti da avvisare; se non spunti nulla, si usano le "ore prima".',
+    tab_promemoria: 'Promemoria', lbl_finestra: 'Finestra temporale', h_da_avvisare: 'Appuntamenti da avvisare',
+    th_contatto: 'Contatto',
+    opt_f24: 'Entro 24 ore', opt_f48: 'Entro 48 ore', opt_f72: 'Entro 72 ore', opt_f168: 'Entro 7 giorni',
+    prom_hint: 'Spunta gli appuntamenti da avvisare; se non spunti nulla, verranno avvisati tutti quelli elencati.',
   },
   fr: {
     tagline: 'Demandes, rendez-vous et rappels — démo', badge_demo: 'données fictives',
@@ -121,7 +124,10 @@ const I18N = {
     btn_export: 'Exporter CSV', th_azioni: 'Actions',
     btn_fissa: 'Fixer un RDV', btn_conferma: 'Confirmer', btn_annulla: 'Annuler',
     toast_appuntamento_ok: 'Rendez-vous fixé', toast_stato_ok: 'Statut mis à jour', toast_errore: 'Opération échouée',
-    prom_hint: 'Coche les rendez-vous à notifier ; si tu ne coches rien, on utilise les "heures avant".',
+    tab_promemoria: 'Rappels', lbl_finestra: 'Fenêtre temporelle', h_da_avvisare: 'Rendez-vous à notifier',
+    th_contatto: 'Contact',
+    opt_f24: 'Sous 24 heures', opt_f48: 'Sous 48 heures', opt_f72: 'Sous 72 heures', opt_f168: 'Sous 7 jours',
+    prom_hint: 'Coche les rendez-vous à notifier ; si tu ne coches rien, tous ceux listés seront notifiés.',
   },
 };
 
@@ -147,8 +153,8 @@ function applyI18n() {
     }
   });
   // L'opzione "Tutte" del filtro sede è generata in JS: la aggiorniamo a parte.
-  const primaOpt = document.querySelector('#filtro-sede option[value=""]');
-  if (primaOpt) primaOpt.textContent = t('opt_tutte');
+  document.querySelectorAll('#filtro-sede option[value=""], #prom-sede option[value=""]')
+    .forEach((o) => { o.textContent = t('opt_tutte'); });
   document.documentElement.lang = lang;
   const btn = $('#btn-lang');
   btn.textContent = lang === 'it' ? 'FR' : 'IT';
@@ -182,7 +188,9 @@ async function caricaSedi() {
   const sedi = await api('/api/sedi');
   const opt = (s) => `<option value="${s.id}">${s.nome} (${s.citta})</option>`;
   $('#sel-sede-form').innerHTML = sedi.map(opt).join('');
-  $('#filtro-sede').innerHTML = `<option value="">${t('opt_tutte')}</option>` + sedi.map(opt).join('');
+  const tutte = `<option value="">${t('opt_tutte')}</option>`;
+  $('#filtro-sede').innerHTML = tutte + sedi.map(opt).join('');
+  $('#prom-sede').innerHTML = tutte + sedi.map(opt).join('');
 }
 
 // --- 2) Dashboard / KPI ----------------------------------------------------
@@ -360,7 +368,7 @@ $('#form-richiesta').addEventListener('submit', async (e) => {
   }
 });
 
-// --- 4) Appuntamenti e promemoria ------------------------------------------
+// --- 4) Appuntamenti (sola lista con gestione stato) -----------------------
 const STATI_APP = ['programmato', 'confermato', 'completato', 'annullato'];
 
 async function caricaAppuntamenti() {
@@ -371,13 +379,7 @@ async function caricaAppuntamenti() {
       const options = STATI_APP.map(
         (s) => `<option value="${s}" ${s === a.stato ? 'selected' : ''}>${s}</option>`
       ).join('');
-      // Idoneo al promemoria: non ancora avvisato e non annullato/completato.
-      const idoneo = !a.promemoria_inviato && (a.stato === 'programmato' || a.stato === 'confermato');
-      const check = idoneo
-        ? `<input type="checkbox" class="sel-app" value="${a.id}" />`
-        : '';
       return `<tr>
-        <td>${check}</td>
         <td>${fmtData(a.data_ora)}</td><td>${esc(a.nome)}</td><td>${esc(a.telefono)}</td>
         <td>${esc(a.sede_nome)}</td>
         <td><select class="stato-app-select" data-id="${a.id}">${options}</select></td>
@@ -397,35 +399,65 @@ async function caricaAppuntamenti() {
         });
         toast(t('toast_stato_ok'));
         caricaStats();
+        caricaPromemoria(); // l'idoneità al promemoria può cambiare
       } catch (e) {
         toast((e.errors ? e.errors.join(', ') : t('toast_errore')), 'err');
       }
     });
   });
-
-  $('#sel-tutti').checked = false; // reset "seleziona tutti" dopo il refresh
 }
 
-// "Seleziona tutti": spunta/deseleziona tutte le caselle idonee.
+// --- 5) Promemoria (pagina dedicata con filtri) ----------------------------
+function queryPromemoria() {
+  const params = new URLSearchParams({ da_avvisare: '1' });
+  if ($('#prom-sede').value) params.set('sede', $('#prom-sede').value);
+  if ($('#prom-finestra').value) params.set('entro_ore', $('#prom-finestra').value);
+  return params;
+}
+
+async function caricaPromemoria() {
+  const righe = await api('/api/appuntamenti?' + queryPromemoria().toString());
+  $('#tab-promemoria tbody').innerHTML = righe
+    .map((a) => {
+      const contatto = [a.telefono, a.email].filter(Boolean).map(esc).join(' · ');
+      return `<tr>
+        <td><input type="checkbox" class="sel-app" value="${a.id}" /></td>
+        <td>${fmtData(a.data_ora)}</td><td>${esc(a.nome)}</td>
+        <td>${contatto}</td><td>${esc(a.sede_nome)}</td>
+      </tr>`;
+    })
+    .join('');
+  $('#sel-tutti').checked = false;
+}
+
+$('#prom-sede').addEventListener('change', caricaPromemoria);
+$('#prom-finestra').addEventListener('change', caricaPromemoria);
+
+// "Seleziona tutti"
 $('#sel-tutti').addEventListener('change', (e) => {
-  document.querySelectorAll('.sel-app').forEach((c) => { c.checked = e.target.checked; });
+  document.querySelectorAll('#tab-promemoria .sel-app').forEach((c) => { c.checked = e.target.checked; });
 });
 
 $('#btn-promemoria').addEventListener('click', async () => {
   const esito = $('#prom-esito');
-  // Appuntamenti spuntati (se ce ne sono, hanno la priorità sulla finestra oraria).
-  const ids = [...document.querySelectorAll('.sel-app:checked')].map((c) => Number(c.value));
-  const canale = $('#prom-canale').value;
-  const body = ids.length > 0 ? { canale, ids } : { canale, ore_prima: Number($('#prom-ore').value) };
+  const spuntati = [...document.querySelectorAll('#tab-promemoria .sel-app:checked')].map((c) => Number(c.value));
+  // Se nessuna casella è spuntata, avvisiamo tutti gli appuntamenti elencati (filtrati).
+  const tutti = [...document.querySelectorAll('#tab-promemoria .sel-app')].map((c) => Number(c.value));
+  const ids = spuntati.length > 0 ? spuntati : tutti;
+  if (ids.length === 0) {
+    esito.textContent = t('prom_result', 0, 0);
+    esito.className = 'esito';
+    return;
+  }
   try {
     const r = await api('/api/promemoria/esegui', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ canale: $('#prom-canale').value, ids }),
     });
     esito.textContent = t('prom_result', r.inviati, r.saltati.length);
     esito.className = 'esito ok';
-    caricaAppuntamenti();
+    await Promise.all([caricaPromemoria(), caricaAppuntamenti(), caricaStats()]);
   } catch (err) {
     esito.textContent = (err.errors || [t('esito_errore')]).join(' · ');
     esito.className = 'esito err';
@@ -439,7 +471,7 @@ $('#btn-lang').addEventListener('click', async () => {
   applyI18n();                       // etichette statiche
   catturaUtm();                      // banner utm
   // Ricarichiamo i contenuti generati (KPI, tabelle) nella nuova lingua.
-  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti()]);
+  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti(), caricaPromemoria()]);
 });
 
 // --- Avvio -----------------------------------------------------------------
@@ -447,6 +479,6 @@ async function init() {
   applyI18n();                       // applica la lingua salvata
   catturaUtm();
   await caricaSedi();
-  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti()]);
+  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti(), caricaPromemoria()]);
 }
 init().catch((e) => console.error('Errore di inizializzazione', e));
