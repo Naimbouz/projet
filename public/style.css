@@ -1,0 +1,149 @@
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --ink: #1f2a37;
+  --muted: #6b7280;
+  --brand: #0ea5a4;
+  --brand-dark: #0b7f7e;
+  --border: #e3e8ef;
+  --accent: #eef9f9;
+  --danger: #dc2626;
+  --ok: #16a34a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  font-size: 22px;
+  background: var(--brand);
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.brand h1 { margin: 0; font-size: 20px; color: var(--brand-dark); }
+.tagline { margin: 0; font-size: 13px; color: var(--muted); }
+.badge-demo {
+  font-size: 12px;
+  background: #fff7ed;
+  color: #b45309;
+  border: 1px solid #fed7aa;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.utm-banner {
+  margin: 12px 24px 0;
+  padding: 10px 14px;
+  background: var(--accent);
+  border: 1px solid var(--brand);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 16px 24px 0;
+  flex-wrap: wrap;
+}
+.tab {
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: var(--card);
+  color: var(--muted);
+  padding: 10px 18px;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  font-size: 14px;
+}
+.tab.active { color: var(--brand-dark); font-weight: 600; border-color: var(--brand); }
+
+main { padding: 0 24px 48px; }
+
+.panel { display: none; background: var(--card); border: 1px solid var(--border); border-radius: 0 10px 10px 10px; padding: 24px; }
+.panel.active { display: block; }
+.panel h2 { margin-top: 0; }
+.panel h3 { margin-top: 28px; color: var(--brand-dark); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.card {
+  background: var(--accent);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.card .value { font-size: 28px; font-weight: 700; color: var(--brand-dark); }
+.card .label { font-size: 13px; color: var(--muted); }
+
+.data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+.data-table th, .data-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.data-table th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.data-table tbody tr:hover { background: var(--accent); }
+
+.form-card { background: var(--accent); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 24px; }
+.form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.form-row > label { flex: 1 1 220px; }
+label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+input, select, textarea {
+  width: 100%;
+  margin-top: 4px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--ink);
+}
+.filters { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+.filters label { flex: 0 1 200px; }
+
+.btn-primary {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.btn-primary:hover { background: var(--brand-dark); }
+
+.esito { margin-left: 12px; font-size: 14px; }
+.esito.ok { color: var(--ok); }
+.esito.err { color: var(--danger); }
+
+.pill { padding: 3px 9px; border-radius: 999px; font-size: 12px; border: 1px solid var(--border); }
+
+.code-block {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+select.stato-select { padding: 4px 8px; font-size: 13px; }
+
+@media (max-width: 600px) {
+  .topbar, main, .tabs, .utm-banner { padding-left: 16px; padding-right: 16px; }
+  .utm-banner { margin-left: 16px; margin-right: 16px; }
+}
