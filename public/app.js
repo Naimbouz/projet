@@ -10,6 +10,94 @@ const api = async (url, options) => {
 };
 const fmtData = (iso) => (iso ? iso.replace('T', ' ').slice(0, 16) : '');
 
+// --- Traduzione "a caldo" (IT di default, FR su richiesta) -----------------
+// Nota: si traducono solo le etichette dell'interfaccia. I valori nei dati
+// (es. "nuova", "google") restano invariati perché sono dati, non testo UI.
+const I18N = {
+  it: {
+    tagline: 'Richieste, appuntamenti e promemoria — demo', badge_demo: 'dati fittizi',
+    utm_pre: 'Arrivi dal canale', utm_post: '— lo registriamo con la tua richiesta.',
+    tab_dashboard: 'Dashboard', tab_richieste: 'Richieste', tab_appuntamenti: 'Appuntamenti', tab_dati: 'Dati e SQL',
+    kpi_title: 'Indicatori (KPI)',
+    h_conversione: 'Conversione per canale', h_costo: 'Costo per appuntamento',
+    h_attesa: 'Richieste in attesa da oltre 2 giorni',
+    h_nuova_richiesta: 'Nuova richiesta di contatto', h_elenco_richieste: 'Elenco richieste',
+    h_automazione: 'Automazione promemoria', h_appuntamenti_prog: 'Appuntamenti in programma',
+    h_modello_dati: 'Modello dati e query', h_esempio_query: 'Esempio di query dei KPI',
+    p_modello: 'Il database SQLite ha quattro tabelle con chiavi esterne e vincoli CHECK.',
+    th_canale: 'Canale', th_richieste: 'Richieste', th_con_app: 'Con appuntamento', th_tasso: 'Tasso',
+    th_spesa: 'Spesa totale', th_appuntamenti: 'Appuntamenti', th_costo_app: 'Costo / appuntamento',
+    th_nome: 'Nome', th_sede: 'Sede', th_stato: 'Stato', th_giorni: 'Giorni',
+    th_telefono: 'Telefono', th_trattamento: 'Trattamento', th_data: 'Data',
+    th_dataora: 'Data/ora', th_paziente: 'Paziente', th_promemoria: 'Promemoria',
+    lbl_nome: 'Nome e cognome', lbl_telefono: 'Telefono', lbl_email: 'Email (opzionale)',
+    lbl_sede: 'Sede', lbl_canale: 'Canale (utm_source)', lbl_trattamento: 'Trattamento',
+    lbl_note: 'Note (opzionale)', lbl_periodo: 'Periodo', lbl_ore_prima: "Ore prima dell'appuntamento",
+    btn_invia: 'Invia richiesta', btn_promemoria: 'Esegui promemoria',
+    opt_tutte: 'Tutte', opt_tutto: 'Tutto', opt_7: 'Ultimi 7 giorni', opt_30: 'Ultimi 30 giorni', opt_90: 'Ultimi 90 giorni',
+    kpi_tot_richieste: 'Richieste totali', kpi_convertite: 'Convertite in appuntamento',
+    kpi_tasso_medio: 'Tasso di conversione medio', kpi_in_attesa: 'In attesa da oltre 2 giorni',
+    esito_registrata: 'Richiesta registrata ✔', esito_errore: 'Errore imprevisto',
+    prom_result: 'Promemoria inviati: {0} (saltati: {1})', inviato: 'inviato',
+  },
+  fr: {
+    tagline: 'Demandes, rendez-vous et rappels — démo', badge_demo: 'données fictives',
+    utm_pre: 'Tu arrives du canal', utm_post: '— nous l\'enregistrons avec ta demande.',
+    tab_dashboard: 'Tableau de bord', tab_richieste: 'Demandes', tab_appuntamenti: 'Rendez-vous', tab_dati: 'Données et SQL',
+    kpi_title: 'Indicateurs (KPI)',
+    h_conversione: 'Conversion par canal', h_costo: 'Coût par rendez-vous',
+    h_attesa: 'Demandes en attente depuis plus de 2 jours',
+    h_nuova_richiesta: 'Nouvelle demande de contact', h_elenco_richieste: 'Liste des demandes',
+    h_automazione: 'Automatisation des rappels', h_appuntamenti_prog: 'Rendez-vous programmés',
+    h_modello_dati: 'Modèle de données et requêtes', h_esempio_query: 'Exemple de requête des KPI',
+    p_modello: 'La base SQLite a quatre tables avec clés étrangères et contraintes CHECK.',
+    th_canale: 'Canal', th_richieste: 'Demandes', th_con_app: 'Avec rendez-vous', th_tasso: 'Taux',
+    th_spesa: 'Dépense totale', th_appuntamenti: 'Rendez-vous', th_costo_app: 'Coût / rendez-vous',
+    th_nome: 'Nom', th_sede: 'Cabinet', th_stato: 'Statut', th_giorni: 'Jours',
+    th_telefono: 'Téléphone', th_trattamento: 'Soin', th_data: 'Date',
+    th_dataora: 'Date/heure', th_paziente: 'Patient', th_promemoria: 'Rappel',
+    lbl_nome: 'Nom et prénom', lbl_telefono: 'Téléphone', lbl_email: 'Email (optionnel)',
+    lbl_sede: 'Cabinet', lbl_canale: 'Canal (utm_source)', lbl_trattamento: 'Soin',
+    lbl_note: 'Notes (optionnel)', lbl_periodo: 'Période', lbl_ore_prima: 'Heures avant le rendez-vous',
+    btn_invia: 'Envoyer la demande', btn_promemoria: 'Lancer les rappels',
+    opt_tutte: 'Tous', opt_tutto: 'Tout', opt_7: '7 derniers jours', opt_30: '30 derniers jours', opt_90: '90 derniers jours',
+    kpi_tot_richieste: 'Demandes totales', kpi_convertite: 'Converties en rendez-vous',
+    kpi_tasso_medio: 'Taux de conversion moyen', kpi_in_attesa: 'En attente depuis plus de 2 jours',
+    esito_registrata: 'Demande enregistrée ✔', esito_errore: 'Erreur inattendue',
+    prom_result: 'Rappels envoyés : {0} (ignorés : {1})', inviato: 'envoyé',
+  },
+};
+
+let lang = 'it';
+try { lang = localStorage.getItem('sf_lang') || 'it'; } catch { /* storage non disponibile */ }
+
+// Restituisce la traduzione di una chiave; {0},{1}... sono sostituiti dagli argomenti.
+function t(key, ...args) {
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.it[key] || key;
+  args.forEach((a, i) => { s = s.replace('{' + i + '}', a); });
+  return s;
+}
+
+// Applica le traduzioni a tutti gli elementi con data-i18n e aggiorna il bottone.
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    // Per le <label> che contengono un campo, traduciamo solo il primo nodo di testo.
+    const primoTesto = el.childNodes[0];
+    if (el.tagName === 'LABEL' && primoTesto && primoTesto.nodeType === Node.TEXT_NODE) {
+      primoTesto.textContent = t(el.dataset.i18n) + ' ';
+    } else {
+      el.textContent = t(el.dataset.i18n);
+    }
+  });
+  // L'opzione "Tutte" del filtro sede è generata in JS: la aggiorniamo a parte.
+  const primaOpt = document.querySelector('#filtro-sede option[value=""]');
+  if (primaOpt) primaOpt.textContent = t('opt_tutte');
+  document.documentElement.lang = lang;
+  const btn = $('#btn-lang');
+  btn.textContent = lang === 'it' ? 'FR' : 'IT';
+  btn.title = lang === 'it' ? 'Tradurre in francese' : 'Traduci in italiano';
+}
+
 // --- Navigazione a schede --------------------------------------------------
 document.querySelectorAll('.tab').forEach((btn) => {
   btn.addEventListener('click', () => {
@@ -37,7 +125,7 @@ async function caricaSedi() {
   const sedi = await api('/api/sedi');
   const opt = (s) => `<option value="${s.id}">${s.nome} (${s.citta})</option>`;
   $('#sel-sede-form').innerHTML = sedi.map(opt).join('');
-  $('#filtro-sede').innerHTML = '<option value="">Tutte</option>' + sedi.map(opt).join('');
+  $('#filtro-sede').innerHTML = `<option value="">${t('opt_tutte')}</option>` + sedi.map(opt).join('');
 }
 
 // --- 2) Dashboard / KPI ----------------------------------------------------
@@ -50,10 +138,10 @@ async function caricaStats() {
   const tassoMedio = totRich ? ((100 * totConv) / totRich).toFixed(1) : '0';
 
   $('#kpi-cards').innerHTML = `
-    <div class="card"><div class="value">${totRich}</div><div class="label">Richieste totali</div></div>
-    <div class="card"><div class="value">${totConv}</div><div class="label">Convertite in appuntamento</div></div>
-    <div class="card"><div class="value">${tassoMedio}%</div><div class="label">Tasso di conversione medio</div></div>
-    <div class="card"><div class="value">${totInAttesa}</div><div class="label">In attesa da oltre 2 giorni</div></div>`;
+    <div class="card"><div class="value">${totRich}</div><div class="label">${t('kpi_tot_richieste')}</div></div>
+    <div class="card"><div class="value">${totConv}</div><div class="label">${t('kpi_convertite')}</div></div>
+    <div class="card"><div class="value">${tassoMedio}%</div><div class="label">${t('kpi_tasso_medio')}</div></div>
+    <div class="card"><div class="value">${totInAttesa}</div><div class="label">${t('kpi_in_attesa')}</div></div>`;
 
   $('#tab-conversione tbody').innerHTML = d.conversione_per_canale
     .map((r) => `<tr><td>${r.canale}</td><td>${r.richieste}</td><td>${r.con_appuntamento}</td><td>${r.tasso_conversione}%</td></tr>`)
@@ -127,14 +215,14 @@ $('#form-richiesta').addEventListener('submit', async (e) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    esito.textContent = 'Richiesta registrata ✔';
+    esito.textContent = t('esito_registrata');
     esito.className = 'esito ok';
     e.target.reset();
     catturaUtm();          // ripristina il canale da utm se presente
     caricaRichieste();
     caricaStats();
   } catch (err) {
-    esito.textContent = (err.errors || ['Errore imprevisto']).join(' · ');
+    esito.textContent = (err.errors || [t('esito_errore')]).join(' · ');
     esito.className = 'esito err';
   }
 });
@@ -144,7 +232,7 @@ async function caricaAppuntamenti() {
   const righe = await api('/api/appuntamenti');
   $('#tab-appuntamenti tbody').innerHTML = righe
     .map((a) => {
-      const prom = a.promemoria_inviato ? '✔ inviato' : '—';
+      const prom = a.promemoria_inviato ? '✔ ' + t('inviato') : '—';
       return `<tr>
         <td>${fmtData(a.data_ora)}</td><td>${a.nome}</td><td>${a.telefono}</td>
         <td>${a.sede_nome}</td><td>${a.stato}</td><td>${prom}</td>
@@ -164,11 +252,11 @@ $('#btn-promemoria').addEventListener('click', async () => {
         canale: $('#prom-canale').value,
       }),
     });
-    esito.textContent = `Promemoria inviati: ${r.inviati} (saltati: ${r.saltati.length})`;
+    esito.textContent = t('prom_result', r.inviati, r.saltati.length);
     esito.className = 'esito ok';
     caricaAppuntamenti();
   } catch (err) {
-    esito.textContent = (err.errors || ['Errore imprevisto']).join(' · ');
+    esito.textContent = (err.errors || [t('esito_errore')]).join(' · ');
     esito.className = 'esito err';
   }
 });
@@ -182,8 +270,19 @@ appuntamenti(id, richiesta_id -> richieste, sede_id -> sedi,
 promemoria_log(id, appuntamento_id -> appuntamenti,
                canale, destinatario, messaggio, inviato_il)`;
 
+// --- Bottone di traduzione "a caldo" ---------------------------------------
+$('#btn-lang').addEventListener('click', async () => {
+  lang = lang === 'it' ? 'fr' : 'it';
+  try { localStorage.setItem('sf_lang', lang); } catch { /* ignora */ }
+  applyI18n();                       // etichette statiche
+  catturaUtm();                      // banner utm
+  // Ricarichiamo i contenuti generati (KPI, tabelle) nella nuova lingua.
+  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti()]);
+});
+
 // --- Avvio -----------------------------------------------------------------
 async function init() {
+  applyI18n();                       // applica la lingua salvata
   catturaUtm();
   await caricaSedi();
   await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti()]);

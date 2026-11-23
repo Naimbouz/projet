@@ -12,71 +12,92 @@
       <span class="brand-mark">◠‿◠</span>
       <div>
         <h1>SmileFlow</h1>
-        <p class="tagline">Richieste, appuntamenti e promemoria — demo</p>
+        <p class="tagline" data-i18n="tagline">Richieste, appuntamenti e promemoria — demo</p>
       </div>
     </div>
-    <span class="badge-demo">dati fittizi</span>
+    <div class="topbar-right">
+      <button id="btn-lang" class="btn-lang" title="Tradurre in francese">FR</button>
+      <span class="badge-demo" data-i18n="badge_demo">dati fittizi</span>
+    </div>
   </header>
 
   <!-- Banner mostrato quando la pagina riceve un utm_source nell'URL -->
   <div id="utm-banner" class="utm-banner" hidden>
-    Arrivi dal canale <strong id="utm-value"></strong> — lo registriamo con la tua richiesta.
+    <span data-i18n="utm_pre">Arrivi dal canale</span>
+    <strong id="utm-value"></strong>
+    <span data-i18n="utm_post">— lo registriamo con la tua richiesta.</span>
   </div>
 
   <nav class="tabs">
-    <button class="tab active" data-tab="dashboard">Dashboard</button>
-    <button class="tab" data-tab="richieste">Richieste</button>
-    <button class="tab" data-tab="appuntamenti">Appuntamenti</button>
-    <button class="tab" data-tab="dati">Dati e SQL</button>
+    <button class="tab active" data-tab="dashboard" data-i18n="tab_dashboard">Dashboard</button>
+    <button class="tab" data-tab="richieste" data-i18n="tab_richieste">Richieste</button>
+    <button class="tab" data-tab="appuntamenti" data-i18n="tab_appuntamenti">Appuntamenti</button>
+    <button class="tab" data-tab="dati" data-i18n="tab_dati">Dati e SQL</button>
   </nav>
 
   <main>
     <!-- ============ DASHBOARD ============ -->
     <section id="dashboard" class="panel active">
-      <h2>Indicatori (KPI)</h2>
+      <h2 data-i18n="kpi_title">Indicatori (KPI)</h2>
       <div id="kpi-cards" class="cards"></div>
 
-      <h3>Conversione per canale</h3>
+      <h3 data-i18n="h_conversione">Conversione per canale</h3>
       <table class="data-table" id="tab-conversione">
-        <thead><tr><th>Canale</th><th>Richieste</th><th>Con appuntamento</th><th>Tasso</th></tr></thead>
+        <thead><tr>
+          <th data-i18n="th_canale">Canale</th>
+          <th data-i18n="th_richieste">Richieste</th>
+          <th data-i18n="th_con_app">Con appuntamento</th>
+          <th data-i18n="th_tasso">Tasso</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
 
-      <h3>Costo per appuntamento</h3>
+      <h3 data-i18n="h_costo">Costo per appuntamento</h3>
       <table class="data-table" id="tab-costo">
-        <thead><tr><th>Canale</th><th>Spesa totale</th><th>Appuntamenti</th><th>Costo / appuntamento</th></tr></thead>
+        <thead><tr>
+          <th data-i18n="th_canale">Canale</th>
+          <th data-i18n="th_spesa">Spesa totale</th>
+          <th data-i18n="th_appuntamenti">Appuntamenti</th>
+          <th data-i18n="th_costo_app">Costo / appuntamento</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
 
-      <h3>Richieste in attesa da oltre 2 giorni</h3>
+      <h3 data-i18n="h_attesa">Richieste in attesa da oltre 2 giorni</h3>
       <table class="data-table" id="tab-attesa">
-        <thead><tr><th>Nome</th><th>Canale</th><th>Sede</th><th>Stato</th><th>Giorni</th></tr></thead>
+        <thead><tr>
+          <th data-i18n="th_nome">Nome</th>
+          <th data-i18n="th_canale">Canale</th>
+          <th data-i18n="th_sede">Sede</th>
+          <th data-i18n="th_stato">Stato</th>
+          <th data-i18n="th_giorni">Giorni</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </section>
 
     <!-- ============ RICHIESTE ============ -->
     <section id="richieste" class="panel">
-      <h2>Nuova richiesta di contatto</h2>
+      <h2 data-i18n="h_nuova_richiesta">Nuova richiesta di contatto</h2>
       <form id="form-richiesta" class="form-card">
         <div class="form-row">
-          <label>Nome e cognome
+          <label data-i18n="lbl_nome">Nome e cognome
             <input type="text" name="nome" required maxlength="100" />
           </label>
-          <label>Telefono
+          <label data-i18n="lbl_telefono">Telefono
             <input type="text" name="telefono" required placeholder="+378 ..." />
           </label>
         </div>
         <div class="form-row">
-          <label>Email (opzionale)
+          <label data-i18n="lbl_email">Email (opzionale)
             <input type="email" name="email" placeholder="nome@example.test" />
           </label>
-          <label>Sede
+          <label data-i18n="lbl_sede">Sede
             <select name="sede_id" id="sel-sede-form" required></select>
           </label>
         </div>
         <div class="form-row">
-          <label>Canale (utm_source)
+          <label data-i18n="lbl_canale">Canale (utm_source)
             <select name="canale" id="sel-canale" required>
               <option value="google">google</option>
               <option value="meta">meta</option>
@@ -85,7 +106,7 @@
               <option value="diretto">diretto</option>
             </select>
           </label>
-          <label>Trattamento
+          <label data-i18n="lbl_trattamento">Trattamento
             <select name="trattamento" required>
               <option value="igiene">igiene</option>
               <option value="ortodonzia">ortodonzia</option>
@@ -96,66 +117,81 @@
             </select>
           </label>
         </div>
-        <label>Note (opzionale)
+        <label data-i18n="lbl_note">Note (opzionale)
           <textarea name="note" rows="2"></textarea>
         </label>
-        <button type="submit" class="btn-primary">Invia richiesta</button>
+        <button type="submit" class="btn-primary" data-i18n="btn_invia">Invia richiesta</button>
         <span id="form-esito" class="esito"></span>
       </form>
 
-      <h2>Elenco richieste</h2>
+      <h2 data-i18n="h_elenco_richieste">Elenco richieste</h2>
       <div class="filters">
-        <label>Sede
-          <select id="filtro-sede"><option value="">Tutte</option></select>
+        <label data-i18n="lbl_sede">Sede
+          <select id="filtro-sede"><option value="" data-i18n="opt_tutte">Tutte</option></select>
         </label>
-        <label>Periodo
+        <label data-i18n="lbl_periodo">Periodo
           <select id="filtro-periodo">
-            <option value="">Tutto</option>
-            <option value="7">Ultimi 7 giorni</option>
-            <option value="30">Ultimi 30 giorni</option>
-            <option value="90">Ultimi 90 giorni</option>
+            <option value="" data-i18n="opt_tutto">Tutto</option>
+            <option value="7" data-i18n="opt_7">Ultimi 7 giorni</option>
+            <option value="30" data-i18n="opt_30">Ultimi 30 giorni</option>
+            <option value="90" data-i18n="opt_90">Ultimi 90 giorni</option>
           </select>
         </label>
       </div>
       <table class="data-table" id="tab-richieste">
-        <thead><tr><th>Nome</th><th>Telefono</th><th>Sede</th><th>Canale</th><th>Trattamento</th><th>Stato</th><th>Data</th></tr></thead>
+        <thead><tr>
+          <th data-i18n="th_nome">Nome</th>
+          <th data-i18n="th_telefono">Telefono</th>
+          <th data-i18n="th_sede">Sede</th>
+          <th data-i18n="th_canale">Canale</th>
+          <th data-i18n="th_trattamento">Trattamento</th>
+          <th data-i18n="th_stato">Stato</th>
+          <th data-i18n="th_data">Data</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </section>
 
     <!-- ============ APPUNTAMENTI ============ -->
     <section id="appuntamenti" class="panel">
-      <h2>Automazione promemoria</h2>
+      <h2 data-i18n="h_automazione">Automazione promemoria</h2>
       <div class="form-card">
         <div class="filters">
-          <label>Ore prima dell'appuntamento
+          <label data-i18n="lbl_ore_prima">Ore prima dell'appuntamento
             <input type="number" id="prom-ore" value="24" min="1" />
           </label>
-          <label>Canale
+          <label data-i18n="th_canale">Canale
             <select id="prom-canale">
               <option value="whatsapp">whatsapp</option>
               <option value="sms">sms</option>
               <option value="email">email</option>
             </select>
           </label>
-          <button id="btn-promemoria" class="btn-primary">Esegui promemoria</button>
+          <button id="btn-promemoria" class="btn-primary" data-i18n="btn_promemoria">Esegui promemoria</button>
         </div>
         <span id="prom-esito" class="esito"></span>
       </div>
 
-      <h2>Appuntamenti in programma</h2>
+      <h2 data-i18n="h_appuntamenti_prog">Appuntamenti in programma</h2>
       <table class="data-table" id="tab-appuntamenti">
-        <thead><tr><th>Data/ora</th><th>Paziente</th><th>Telefono</th><th>Sede</th><th>Stato</th><th>Promemoria</th></tr></thead>
+        <thead><tr>
+          <th data-i18n="th_dataora">Data/ora</th>
+          <th data-i18n="th_paziente">Paziente</th>
+          <th data-i18n="th_telefono">Telefono</th>
+          <th data-i18n="th_sede">Sede</th>
+          <th data-i18n="th_stato">Stato</th>
+          <th data-i18n="th_promemoria">Promemoria</th>
+        </tr></thead>
         <tbody></tbody>
       </table>
     </section>
 
     <!-- ============ DATI E SQL ============ -->
     <section id="dati" class="panel">
-      <h2>Modello dati e query</h2>
-      <p>Il database SQLite ha quattro tabelle con chiavi esterne e vincoli <code>CHECK</code>.</p>
+      <h2 data-i18n="h_modello_dati">Modello dati e query</h2>
+      <p data-i18n="p_modello">Il database SQLite ha quattro tabelle con chiavi esterne e vincoli CHECK.</p>
       <pre class="code-block" id="schema-view">Caricamento schema…</pre>
-      <h3>Esempio di query dei KPI</h3>
+      <h3 data-i18n="h_esempio_query">Esempio di query dei KPI</h3>
       <pre class="code-block">-- Tasso di conversione per canale (utm_source)
 SELECT r.canale,
        COUNT(DISTINCT r.id)           AS richieste,
