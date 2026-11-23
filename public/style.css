@@ -39,6 +39,7 @@ body {
 }
 .brand h1 { margin: 0; font-size: 20px; color: var(--brand-dark); }
 .tagline { margin: 0; font-size: 13px; color: var(--muted); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
 .badge-demo {
   font-size: 12px;
   background: #fff7ed;
@@ -47,6 +48,17 @@ body {
   padding: 4px 10px;
   border-radius: 999px;
 }
+.btn-lang {
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--card);
+  color: var(--brand-dark);
+  border: 1px solid var(--brand);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.btn-lang:hover { background: var(--accent); }
 
 .utm-banner {
   margin: 12px 24px 0;
