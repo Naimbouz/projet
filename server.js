@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { openDb } from './db.js';
 import { validaRichiesta, validaStatoRichiesta } from './validation.js';
 import { tuttiGliStats } from './stats.js';
+import { eseguiPromemoria } from './reminders.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = openDb();
@@ -94,6 +95,49 @@ app.patch('/api/richieste/:id', (req, res) => {
 // GET /api/stats : indicatori calcolati con query SQL reali.
 app.get('/api/stats', (req, res) => {
   res.json(tuttiGliStats(db));
+});
+
+// --- APPUNTAMENTI E PROMEMORIA ---------------------------------------------
+
+// GET /api/appuntamenti : elenco appuntamenti con i dati del paziente e della sede.
+// Filtro opzionale "entro_ore": solo quelli futuri entro N ore.
+app.get('/api/appuntamenti', (req, res) => {
+  const condizioni = ["a.stato IN ('programmato', 'confermato', 'completato', 'annullato')"];
+  const parametri = [];
+
+  const entroOre = Number(req.query.entro_ore);
+  if (Number.isInteger(entroOre) && entroOre > 0) {
+    condizioni.push("a.data_ora > datetime('now') AND a.data_ora <= datetime('now', ?)");
+    parametri.push(`+${entroOre} hours`);
+  }
+
+  const righe = db
+    .prepare(
+      `SELECT a.id, a.data_ora, a.stato, a.promemoria_inviato,
+              r.nome, r.telefono, r.email,
+              s.nome AS sede_nome
+       FROM appuntamenti a
+       JOIN richieste r ON r.id = a.richiesta_id
+       JOIN sedi s      ON s.id = a.sede_id
+       WHERE ${condizioni.join(' AND ')}
+       ORDER BY a.data_ora ASC`
+    )
+    .all(...parametri);
+  res.json(righe);
+});
+
+// POST /api/promemoria/esegui : lancia l'automazione dei promemoria.
+// Corpo: { ore_prima?: number, canale?: 'whatsapp'|'sms'|'email' }
+app.post('/api/promemoria/esegui', (req, res) => {
+  try {
+    const risultato = eseguiPromemoria(db, {
+      orePrima: req.body?.ore_prima ?? 24,
+      canale: req.body?.canale ?? 'whatsapp',
+    });
+    res.json(risultato);
+  } catch (e) {
+    res.status(400).json({ errors: [e.message] });
+  }
 });
 
 // --- Avvio del server ------------------------------------------------------

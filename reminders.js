@@ -1,0 +1,83 @@
+// Automazione dei promemoria appuntamenti.
+// L'invio è SIMULATO: non contatta servizi reali, scrive solo nel log.
+
+import { CANALI_PROMEMORIA } from './validation.js';
+
+/**
+ * Appuntamenti futuri che necessitano un promemoria, entro X ore dall'adesso.
+ * Esclude gli appuntamenti annullati/completati e quelli già avvisati.
+ */
+export function appuntamentiDaRicordare(db, orePrima) {
+  return db
+    .prepare(
+      `SELECT a.id, a.data_ora, a.sede_id,
+              r.nome, r.telefono, r.email,
+              s.nome AS sede_nome
+       FROM appuntamenti a
+       JOIN richieste r ON r.id = a.richiesta_id
+       JOIN sedi s      ON s.id = a.sede_id
+       WHERE a.stato IN ('programmato', 'confermato')
+         AND a.promemoria_inviato = 0
+         AND a.data_ora > datetime('now')
+         AND a.data_ora <= datetime('now', ?)
+       ORDER BY a.data_ora ASC`
+    )
+    .all(`+${orePrima} hours`);
+}
+
+/** Sceglie il destinatario in base al canale. */
+function destinatarioPerCanale(app, canale) {
+  if (canale === 'email') return app.email;     // può essere null
+  return app.telefono;                           // whatsapp / sms
+}
+
+/** Invio simulato di un messaggio (qui si collegherebbe un servizio reale). */
+function inviaMessaggioSimulato(canale, destinatario, messaggio) {
+  console.log(`[PROMEMORIA ${canale}] -> ${destinatario}: ${messaggio}`);
+  return true; // in un sistema reale: esito della chiamata all'API del provider
+}
+
+/**
+ * Esegue l'automazione: trova gli appuntamenti, invia i promemoria (simulati),
+ * scrive nel log e aggiorna lo stato.
+ * @returns {{ inviati: number, saltati: object[], dettagli: object[] }}
+ */
+export function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp' } = {}) {
+  if (!CANALI_PROMEMORIA.includes(canale)) {
+    throw new Error(`canale non valido: ${canale}`);
+  }
+  const ore = Number(orePrima);
+  if (!Number.isInteger(ore) || ore <= 0) {
+    throw new Error('ore_prima deve essere un intero positivo');
+  }
+
+  const candidati = appuntamentiDaRicordare(db, ore);
+  const dettagli = [];
+  const saltati = [];
+
+  const insLog = db.prepare(
+    `INSERT INTO promemoria_log (appuntamento_id, canale, destinatario, messaggio)
+     VALUES (?, ?, ?, ?)`
+  );
+  const segnaInviato = db.prepare('UPDATE appuntamenti SET promemoria_inviato = 1 WHERE id = ?');
+
+  for (const app of candidati) {
+    const destinatario = destinatarioPerCanale(app, canale);
+    if (!destinatario) {
+      // Es. canale email ma il paziente non ha fornito un indirizzo.
+      saltati.push({ appuntamento_id: app.id, motivo: `nessun recapito per il canale ${canale}` });
+      continue;
+    }
+    const messaggio =
+      `Gentile ${app.nome}, le ricordiamo il suo appuntamento presso ` +
+      `${app.sede_nome} il ${app.data_ora}. Risponda per confermare.`;
+
+    inviaMessaggioSimulato(canale, destinatario, messaggio);
+    insLog.run(app.id, canale, destinatario, messaggio);
+    segnaInviato.run(app.id);
+
+    dettagli.push({ appuntamento_id: app.id, canale, destinatario, messaggio });
+  }
+
+  return { inviati: dettagli.length, saltati, dettagli };
+}
