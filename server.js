@@ -3,7 +3,10 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { openDb } from './db.js';
-import { validaRichiesta, validaStatoRichiesta } from './validation.js';
+import {
+  validaRichiesta, validaStatoRichiesta,
+  validaAppuntamento, validaStatoAppuntamento,
+} from './validation.js';
 import { tuttiGliStats } from './stats.js';
 import { eseguiPromemoria } from './reminders.js';
 
@@ -20,6 +23,40 @@ function periodoToDate(periodo) {
   const giorni = Number(periodo);
   if (!Number.isInteger(giorni) || giorni <= 0) return null;
   return `-${giorni} days`;
+}
+
+// Costruisce la clausola WHERE per i filtri delle richieste.
+// Usata sia dall'elenco JSON sia dall'esportazione CSV (una sola fonte di verità).
+function filtriRichieste(query) {
+  const condizioni = [];
+  const parametri = [];
+
+  if (query.sede) {
+    condizioni.push('r.sede_id = ?');
+    parametri.push(Number(query.sede));
+  }
+  const periodo = periodoToDate(query.periodo);
+  if (periodo) {
+    condizioni.push("r.creata_il >= datetime('now', ?)");
+    parametri.push(periodo);
+  }
+  if (query.canale) {
+    condizioni.push('r.canale = ?');
+    parametri.push(query.canale);
+  }
+  if (query.stato) {
+    condizioni.push('r.stato = ?');
+    parametri.push(query.stato);
+  }
+  if (query.q && String(query.q).trim() !== '') {
+    // Ricerca testuale su nome o telefono.
+    condizioni.push('(r.nome LIKE ? OR r.telefono LIKE ?)');
+    const like = `%${String(query.q).trim()}%`;
+    parametri.push(like, like);
+  }
+
+  const where = condizioni.length ? `WHERE ${condizioni.join(' AND ')}` : '';
+  return { where, parametri };
 }
 
 // --- SEDI ------------------------------------------------------------------
@@ -52,22 +89,9 @@ app.post('/api/richieste', (req, res) => {
   res.status(201).json(creata);
 });
 
-// GET /api/richieste : elenco con filtri opzionali (sede, periodo in giorni).
+// GET /api/richieste : elenco con filtri (sede, periodo, canale, stato, q).
 app.get('/api/richieste', (req, res) => {
-  const condizioni = [];
-  const parametri = [];
-
-  if (req.query.sede) {
-    condizioni.push('r.sede_id = ?');
-    parametri.push(Number(req.query.sede));
-  }
-  const periodo = periodoToDate(req.query.periodo);
-  if (periodo) {
-    condizioni.push("r.creata_il >= datetime('now', ?)");
-    parametri.push(periodo);
-  }
-
-  const where = condizioni.length ? `WHERE ${condizioni.join(' AND ')}` : '';
+  const { where, parametri } = filtriRichieste(req.query);
   const righe = db
     .prepare(
       `SELECT r.*, s.nome AS sede_nome
@@ -78,6 +102,31 @@ app.get('/api/richieste', (req, res) => {
     )
     .all(...parametri);
   res.json(righe);
+});
+
+// GET /api/richieste/export.csv : esporta le richieste filtrate in CSV.
+app.get('/api/richieste/export.csv', (req, res) => {
+  const { where, parametri } = filtriRichieste(req.query);
+  const righe = db
+    .prepare(
+      `SELECT r.id, r.nome, r.telefono, r.email, s.nome AS sede,
+              r.canale, r.trattamento, r.stato, r.costo_acquisizione, r.creata_il
+       FROM richieste r
+       JOIN sedi s ON s.id = r.sede_id
+       ${where}
+       ORDER BY r.creata_il DESC`
+    )
+    .all(...parametri);
+
+  const colonne = ['id', 'nome', 'telefono', 'email', 'sede', 'canale', 'trattamento', 'stato', 'costo_acquisizione', 'creata_il'];
+  // Racchiude ogni campo tra virgolette e raddoppia le virgolette interne (CSV standard).
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const righeCsv = righe.map((r) => colonne.map((c) => esc(r[c])).join(','));
+  const csv = [colonne.join(','), ...righeCsv].join('\r\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="richieste.csv"');
+  res.send('﻿' + csv); // BOM per far aprire bene gli accenti in Excel
 });
 
 // PATCH /api/richieste/:id : aggiorna lo stato di una richiesta.
@@ -131,6 +180,53 @@ app.get('/api/appuntamenti', (req, res) => {
     )
     .all(...parametri);
   res.json(righe);
+});
+
+// POST /api/appuntamenti : fissa un appuntamento a partire da una richiesta.
+// Imposta anche la richiesta come "convertita" (chiude il funnel).
+app.post('/api/appuntamenti', (req, res) => {
+  const { errors, value } = validaAppuntamento(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+  const richiesta = db.prepare('SELECT id, sede_id FROM richieste WHERE id = ?').get(value.richiesta_id);
+  if (!richiesta) {
+    return res.status(400).json({ errors: ['richiesta_id: richiesta inesistente'] });
+  }
+
+  // La sede dell'appuntamento è quella della richiesta (coerenza dei dati).
+  const info = db
+    .prepare('INSERT INTO appuntamenti (richiesta_id, sede_id, data_ora) VALUES (?, ?, ?)')
+    .run(richiesta.id, richiesta.sede_id, value.data_ora);
+  db.prepare("UPDATE richieste SET stato = 'convertita' WHERE id = ?").run(richiesta.id);
+
+  const creato = db
+    .prepare(
+      `SELECT a.*, r.nome, r.telefono, s.nome AS sede_nome
+       FROM appuntamenti a
+       JOIN richieste r ON r.id = a.richiesta_id
+       JOIN sedi s      ON s.id = a.sede_id
+       WHERE a.id = ?`
+    )
+    .get(info.lastInsertRowid);
+  res.status(201).json(creato);
+});
+
+// PATCH /api/appuntamenti/:id : aggiorna lo stato dell'appuntamento.
+app.patch('/api/appuntamenti/:id', (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ errors: ['id: non valido'] });
+  }
+  const { errors, value } = validaStatoAppuntamento(req.body?.stato);
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+  const info = db.prepare('UPDATE appuntamenti SET stato = ? WHERE id = ?').run(value, id);
+  if (info.changes === 0) {
+    return res.status(404).json({ errors: ['appuntamento non trovato'] });
+  }
+  res.json(db.prepare('SELECT * FROM appuntamenti WHERE id = ?').get(id));
 });
 
 // POST /api/promemoria/esegui : lancia l'automazione dei promemoria.
