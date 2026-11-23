@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validaRichiesta, validaStatoRichiesta } from '../validation.js';
+import {
+  validaRichiesta, validaStatoRichiesta,
+  validaAppuntamento, validaStatoAppuntamento, normalizzaDataOra,
+} from '../validation.js';
 
 test('richiesta valida: nessun errore e valori normalizzati', () => {
   const { errors, value } = validaRichiesta({
@@ -65,4 +68,26 @@ test('stato richiesta: valido e non valido', () => {
   assert.deepEqual(validaStatoRichiesta('convertita').errors, []);
   assert.equal(validaStatoRichiesta('convertita').value, 'convertita');
   assert.ok(validaStatoRichiesta('inventato').errors.length > 0);
+});
+
+test('normalizzaDataOra: accetta formati validi, rifiuta il resto', () => {
+  assert.equal(normalizzaDataOra('2026-11-25 15:30'), '2026-11-25 15:30:00');
+  assert.equal(normalizzaDataOra('2026-11-25T15:30'), '2026-11-25 15:30:00'); // formato datetime-local
+  assert.equal(normalizzaDataOra('domani'), null);
+  assert.equal(normalizzaDataOra('2026-13-40 99:99'), null); // data impossibile
+});
+
+test('appuntamento: valido e casi di errore', () => {
+  const ok = validaAppuntamento({ richiesta_id: '5', data_ora: '2026-11-25 15:30' });
+  assert.deepEqual(ok.errors, []);
+  assert.equal(ok.value.richiesta_id, 5);
+  assert.equal(ok.value.data_ora, '2026-11-25 15:30:00');
+
+  assert.ok(validaAppuntamento({ data_ora: '2026-11-25 15:30' }).errors.length > 0); // manca richiesta_id
+  assert.ok(validaAppuntamento({ richiesta_id: 5, data_ora: 'boh' }).errors.length > 0); // data invalida
+});
+
+test('stato appuntamento: valido e non valido', () => {
+  assert.deepEqual(validaStatoAppuntamento('confermato').errors, []);
+  assert.ok(validaStatoAppuntamento('boh').errors.length > 0);
 });
