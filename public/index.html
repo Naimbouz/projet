@@ -197,12 +197,14 @@
           </label>
           <button id="btn-promemoria" class="btn-primary" data-i18n="btn_promemoria">Esegui promemoria</button>
         </div>
+        <p class="hint" data-i18n="prom_hint">Spunta gli appuntamenti da avvisare; se non spunti nulla, si usano le "ore prima".</p>
         <span id="prom-esito" class="esito"></span>
       </div>
 
       <h2 data-i18n="h_appuntamenti_prog">Appuntamenti in programma</h2>
       <table class="data-table" id="tab-appuntamenti">
         <thead><tr>
+          <th><input type="checkbox" id="sel-tutti" title="Seleziona tutti" /></th>
           <th data-i18n="th_dataora">Data/ora</th>
           <th data-i18n="th_paziente">Paziente</th>
           <th data-i18n="th_telefono">Telefono</th>

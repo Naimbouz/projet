@@ -26,6 +26,31 @@ export function appuntamentiDaRicordare(db, orePrima) {
     .all(`+${orePrima} hours`);
 }
 
+/**
+ * Appuntamenti selezionati manualmente (per id), ancora idonei al promemoria.
+ * Stesso filtro di idoneità, ma senza finestra temporale (scelta esplicita).
+ */
+export function appuntamentiPerIds(db, ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  const puliti = ids.map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  if (puliti.length === 0) return [];
+  const segnaposti = puliti.map(() => '?').join(',');
+  return db
+    .prepare(
+      `SELECT a.id, a.data_ora, a.sede_id,
+              r.nome, r.telefono, r.email,
+              s.nome AS sede_nome
+       FROM appuntamenti a
+       JOIN richieste r ON r.id = a.richiesta_id
+       JOIN sedi s      ON s.id = a.sede_id
+       WHERE a.id IN (${segnaposti})
+         AND a.stato IN ('programmato', 'confermato')
+         AND a.promemoria_inviato = 0
+       ORDER BY a.data_ora ASC`
+    )
+    .all(...puliti);
+}
+
 /** Sceglie il destinatario in base al canale. */
 function destinatarioPerCanale(app, canale) {
   if (canale === 'email') return app.email;     // può essere null
@@ -75,16 +100,23 @@ async function inviaMessaggio(canale, destinatario, nome, oggetto, messaggio) {
  * l'appuntamento NON viene marcato (così può essere ritentato).
  * @returns {Promise<{ inviati: number, saltati: object[], dettagli: object[] }>}
  */
-export async function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp' } = {}) {
+export async function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp', ids = null } = {}) {
   if (!CANALI_PROMEMORIA.includes(canale)) {
     throw new Error(`canale non valido: ${canale}`);
   }
-  const ore = Number(orePrima);
-  if (!Number.isInteger(ore) || ore <= 0) {
-    throw new Error('ore_prima deve essere un intero positivo');
-  }
 
-  const candidati = appuntamentiDaRicordare(db, ore);
+  // Due modalità: se sono passati degli id (caselle spuntate) usiamo quelli;
+  // altrimenti usiamo la finestra temporale "ore prima".
+  let candidati;
+  if (Array.isArray(ids) && ids.length > 0) {
+    candidati = appuntamentiPerIds(db, ids);
+  } else {
+    const ore = Number(orePrima);
+    if (!Number.isInteger(ore) || ore <= 0) {
+      throw new Error('ore_prima deve essere un intero positivo');
+    }
+    candidati = appuntamentiDaRicordare(db, ore);
+  }
   const dettagli = [];
   const saltati = [];
 

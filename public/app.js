@@ -88,6 +88,7 @@ const I18N = {
     btn_export: 'Esporta CSV', th_azioni: 'Azioni',
     btn_fissa: 'Fissa appuntamento', btn_conferma: 'Conferma', btn_annulla: 'Annulla',
     toast_appuntamento_ok: 'Appuntamento fissato', toast_stato_ok: 'Stato aggiornato', toast_errore: 'Operazione non riuscita',
+    prom_hint: 'Spunta gli appuntamenti da avvisare; se non spunti nulla, si usano le "ore prima".',
   },
   fr: {
     tagline: 'Demandes, rendez-vous et rappels — démo', badge_demo: 'données fictives',
@@ -120,6 +121,7 @@ const I18N = {
     btn_export: 'Exporter CSV', th_azioni: 'Actions',
     btn_fissa: 'Fixer un RDV', btn_conferma: 'Confirmer', btn_annulla: 'Annuler',
     toast_appuntamento_ok: 'Rendez-vous fixé', toast_stato_ok: 'Statut mis à jour', toast_errore: 'Opération échouée',
+    prom_hint: 'Coche les rendez-vous à notifier ; si tu ne coches rien, on utilise les "heures avant".',
   },
 };
 
@@ -369,7 +371,13 @@ async function caricaAppuntamenti() {
       const options = STATI_APP.map(
         (s) => `<option value="${s}" ${s === a.stato ? 'selected' : ''}>${s}</option>`
       ).join('');
+      // Idoneo al promemoria: non ancora avvisato e non annullato/completato.
+      const idoneo = !a.promemoria_inviato && (a.stato === 'programmato' || a.stato === 'confermato');
+      const check = idoneo
+        ? `<input type="checkbox" class="sel-app" value="${a.id}" />`
+        : '';
       return `<tr>
+        <td>${check}</td>
         <td>${fmtData(a.data_ora)}</td><td>${esc(a.nome)}</td><td>${esc(a.telefono)}</td>
         <td>${esc(a.sede_nome)}</td>
         <td><select class="stato-app-select" data-id="${a.id}">${options}</select></td>
@@ -394,18 +402,26 @@ async function caricaAppuntamenti() {
       }
     });
   });
+
+  $('#sel-tutti').checked = false; // reset "seleziona tutti" dopo il refresh
 }
+
+// "Seleziona tutti": spunta/deseleziona tutte le caselle idonee.
+$('#sel-tutti').addEventListener('change', (e) => {
+  document.querySelectorAll('.sel-app').forEach((c) => { c.checked = e.target.checked; });
+});
 
 $('#btn-promemoria').addEventListener('click', async () => {
   const esito = $('#prom-esito');
+  // Appuntamenti spuntati (se ce ne sono, hanno la priorità sulla finestra oraria).
+  const ids = [...document.querySelectorAll('.sel-app:checked')].map((c) => Number(c.value));
+  const canale = $('#prom-canale').value;
+  const body = ids.length > 0 ? { canale, ids } : { canale, ore_prima: Number($('#prom-ore').value) };
   try {
     const r = await api('/api/promemoria/esegui', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ore_prima: Number($('#prom-ore').value),
-        canale: $('#prom-canale').value,
-      }),
+      body: JSON.stringify(body),
     });
     esito.textContent = t('prom_result', r.inviati, r.saltati.length);
     esito.className = 'esito ok';
