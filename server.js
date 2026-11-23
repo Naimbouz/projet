@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { openDb } from './db.js';
 import { validaRichiesta, validaStatoRichiesta } from './validation.js';
+import { tuttiGliStats } from './stats.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = openDb();
@@ -86,6 +87,13 @@ app.patch('/api/richieste/:id', (req, res) => {
     return res.status(404).json({ errors: ['richiesta non trovata'] });
   }
   res.json(db.prepare('SELECT * FROM richieste WHERE id = ?').get(id));
+});
+
+// --- STATISTICHE / KPI -----------------------------------------------------
+
+// GET /api/stats : indicatori calcolati con query SQL reali.
+app.get('/api/stats', (req, res) => {
+  res.json(tuttiGliStats(db));
 });
 
 // --- Avvio del server ------------------------------------------------------
