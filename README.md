@@ -125,15 +125,36 @@ sono limitati da vincoli `CHECK`.
 ## Automazione dei promemoria
 
 Il flusso (trigger → filtro → invio → aggiornamento CRM) è descritto in
-[`docs/workflow.md`](docs/workflow.md). L'invio è **simulato** (scrive nel log
-e sulla console) per non contattare persone reali; in produzione si
-collegherebbe un provider reale (WhatsApp Business API, Twilio, SMTP).
+[`docs/workflow.md`](docs/workflow.md).
+
+- **Email**: invio **reale** tramite [Brevo](https://www.brevo.com) (piano
+  gratuito) se sono impostate le variabili d'ambiente, altrimenti simulato.
+- **WhatsApp / SMS**: sempre **simulati** (scrivono nel log); si collegherebbero
+  a un provider reale (WhatsApp Business API, Twilio).
+
+### Invio email reale (Brevo)
+
+1. Crea un account gratuito su brevo.com.
+2. Verifica un **mittente** (es. la tua email) e genera una **API key**
+   (SMTP & API → API Keys).
+3. Copia `.env.example` in `.env` e compila:
+
+   ```
+   BREVO_API_KEY=xkeysib-...
+   MITTENTE_EMAIL=tua-email-verificata@gmail.com
+   MITTENTE_NOME=SmileFlow
+   ```
+
+4. Avvia con `npm start` (carica `.env` automaticamente) e lancia i promemoria
+   sul canale **email**. Riceverà l'email il paziente il cui indirizzo è nella
+   richiesta (usa una richiesta con un'email reale per provare).
 
 ## Limiti noti
 
 - `node:sqlite` è una funzionalità **sperimentale** di Node: all'avvio compare
   un avviso. È adatta a una demo, non ancora a un ambiente di produzione critico.
-- Invio dei promemoria **simulato**: nessun messaggio reale viene inviato.
+- Promemoria: email **reali** via Brevo se configurato; WhatsApp/SMS restano
+  **simulati** (non esistono servizi SMS realmente gratuiti).
 - Nessuna autenticazione/autorizzazione (fuori dallo scopo della demo).
 - I KPI di costo usano un costo di acquisizione indicativo per lead, non dati
   reali delle piattaforme pubblicitarie.

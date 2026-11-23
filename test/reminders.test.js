@@ -19,9 +19,10 @@ beforeEach(() => {
   ).run();
 });
 
-test('invia un promemoria e aggiorna stato + log', () => {
-  const r = eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
+test('invia un promemoria (simulato) e aggiorna stato + log', async () => {
+  const r = await eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
   assert.equal(r.inviati, 1);
+  assert.equal(r.dettagli[0].esito, 'simulato');
 
   const app = db.prepare('SELECT promemoria_inviato FROM appuntamenti WHERE id = 1').get();
   assert.equal(app.promemoria_inviato, 1);
@@ -31,25 +32,25 @@ test('invia un promemoria e aggiorna stato + log', () => {
   assert.ok(log.messaggio.includes('Paziente Uno'));
 });
 
-test('idempotenza: il secondo passaggio non reinvia', () => {
-  eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
-  const r2 = eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
+test('idempotenza: il secondo passaggio non reinvia', async () => {
+  await eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
+  const r2 = await eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
   assert.equal(r2.inviati, 0);
 });
 
-test('appuntamento fuori finestra non viene avvisato', () => {
+test('appuntamento fuori finestra non viene avvisato', async () => {
   // Spostiamo l'appuntamento a +48h: con finestra 24h non deve rientrare.
   db.prepare("UPDATE appuntamenti SET data_ora = datetime('now','+48 hours') WHERE id = 1").run();
-  const r = eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
+  const r = await eseguiPromemoria(db, { orePrima: 24, canale: 'whatsapp' });
   assert.equal(r.inviati, 0);
 });
 
-test('canale email senza indirizzo: appuntamento saltato', () => {
-  const r = eseguiPromemoria(db, { orePrima: 24, canale: 'email' });
+test('canale email senza indirizzo: appuntamento saltato', async () => {
+  const r = await eseguiPromemoria(db, { orePrima: 24, canale: 'email' });
   assert.equal(r.inviati, 0);
   assert.equal(r.saltati.length, 1);
 });
 
-test('canale non valido: errore', () => {
-  assert.throws(() => eseguiPromemoria(db, { canale: 'piccione' }), /canale non valido/);
+test('canale non valido: errore', async () => {
+  await assert.rejects(() => eseguiPromemoria(db, { canale: 'piccione' }), /canale non valido/);
 });
