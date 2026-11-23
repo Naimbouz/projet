@@ -41,26 +41,7 @@ npm run seed       # crea e popola il database con dati fittizi
 npm start          # avvia il server su http://localhost:3000
 ```
 
-Poi apri **http://localhost:3000** nel browser: comparirà una schermata di
-login.
-
-### Accesso (password admin)
-
-All'avvio l'applicazione chiede una password.
-
-La password si imposta nel file **`.env`** (già presente, non versionato):
-
-```
-ADMIN_PASSWORD=admin
-```
-
-`npm start` carica il file automaticamente (opzione nativa di Node
-`--env-file-if-exists`, nessuna libreria). Per cambiarla, modifica il valore nel
-file `.env`. Se il file manca, vale il default `smileflow`.
-Un modello è disponibile in `.env.example`.
-
-L'API (tranne `login`/`logout`/`session`) è protetta: senza sessione valida
-risponde `401`. Il pulsante **Esci** in alto a destra chiude la sessione.
+Poi apri **http://localhost:3000** nel browser.
 
 Per simulare un arrivo da un canale di marketing, aggiungi il parametro
 `utm_source` all'URL, ad esempio:
@@ -79,7 +60,6 @@ npm test
 schema.sql        definizione delle tabelle (vincoli e chiavi esterne)
 db.js             connessione al database + attivazione chiavi esterne
 seed.js           dati di test fittizi
-auth.js           autenticazione admin (login, sessioni, middleware)
 validation.js     validazione degli input (funzioni pure)
 stats.js          query SQL dei KPI
 reminders.js      automazione dei promemoria
@@ -93,9 +73,6 @@ docs/workflow.md  workflow di automazione in stile n8n
 
 | Metodo | Endpoint                     | Descrizione |
 |--------|------------------------------|-------------|
-| POST   | `/api/login`                 | Accesso con password, crea la sessione (cookie) |
-| POST   | `/api/logout`                | Chiude la sessione |
-| GET    | `/api/session`               | Indica se la richiesta è autenticata |
 | GET    | `/api/sedi`                  | Elenco delle sedi |
 | POST   | `/api/richieste`             | Registra una richiesta (validazione lato server) |
 | GET    | `/api/richieste`             | Elenco con filtri `sede` e `periodo` (giorni) |
@@ -144,9 +121,7 @@ collegherebbe un provider reale (WhatsApp Business API, Twilio, SMTP).
 - `node:sqlite` è una funzionalità **sperimentale** di Node: all'avvio compare
   un avviso. È adatta a una demo, non ancora a un ambiente di produzione critico.
 - Invio dei promemoria **simulato**: nessun messaggio reale viene inviato.
-- Autenticazione volutamente semplice: un'unica password admin e sessioni in
-  memoria (si azzerano al riavvio del server). Adatta a una demo, non a un
-  sistema multi-utente con ruoli.
+- Nessuna autenticazione/autorizzazione (fuori dallo scopo della demo).
 - I KPI di costo usano un costo di acquisizione indicativo per lead, non dati
   reali delle piattaforme pubblicitarie.
 
