@@ -46,14 +46,18 @@ login.
 
 ### Accesso (password admin)
 
-All'avvio l'applicazione chiede una password. La password si imposta con la
-variabile d'ambiente `ADMIN_PASSWORD`; in mancanza, per la demo vale
-`smileflow`.
+All'avvio l'applicazione chiede una password.
 
-```powershell
-# PowerShell: impostare una password personalizzata
-$env:ADMIN_PASSWORD = "la-mia-password"; npm start
+La password si imposta nel file **`.env`** (già presente, non versionato):
+
 ```
+ADMIN_PASSWORD=admin
+```
+
+`npm start` carica il file automaticamente (opzione nativa di Node
+`--env-file-if-exists`, nessuna libreria). Per cambiarla, modifica il valore nel
+file `.env`. Se il file manca, vale il default `smileflow`.
+Un modello è disponibile in `.env.example`.
 
 L'API (tranne `login`/`logout`/`session`) è protetta: senza sessione valida
 risponde `401`. Il pulsante **Esci** in alto a destra chiude la sessione.
