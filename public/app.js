@@ -40,6 +40,7 @@ const I18N = {
     esito_registrata: 'Richiesta registrata ✔', esito_errore: 'Errore imprevisto',
     prom_result: 'Promemoria inviati: {0} (saltati: {1})', inviato: 'inviato',
     lbl_password: 'Password', btn_entra: 'Entra', btn_logout: 'Esci', login_errore: 'Password errata',
+    login_offline: "Server non raggiungibile. Avvia 'npm start' e apri http://localhost:3000",
   },
   fr: {
     tagline: 'Demandes, rendez-vous et rappels — démo', badge_demo: 'données fictives',
@@ -67,6 +68,7 @@ const I18N = {
     esito_registrata: 'Demande enregistrée ✔', esito_errore: 'Erreur inattendue',
     prom_result: 'Rappels envoyés : {0} (ignorés : {1})', inviato: 'envoyé',
     lbl_password: 'Mot de passe', btn_entra: 'Entrer', btn_logout: 'Déconnexion', login_errore: 'Mot de passe incorrect',
+    login_offline: "Serveur injoignable. Lance 'npm start' et ouvre http://localhost:3000",
   },
 };
 
@@ -295,16 +297,28 @@ function mostraApp() {
 $('#form-login').addEventListener('submit', async (e) => {
   e.preventDefault();
   const esito = $('#login-esito');
+  esito.className = 'esito';
+  esito.textContent = '';
+
+  let res;
   try {
-    await api('/api/login', {
+    res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: $('#login-password').value }),
     });
-    esito.textContent = '';
-    mostraApp();
-    await init();
   } catch {
+    // fetch fallisce = nessun server risponde (es. pagina aperta come file://).
+    esito.textContent = t('login_offline');
+    esito.className = 'esito err';
+    return;
+  }
+
+  if (res.ok) {
+    mostraApp();
+    try { await init(); } catch (err) { console.error('Errore init', err); }
+  } else {
+    // Il server ha risposto ma rifiuta: password sbagliata.
     esito.textContent = t('login_errore');
     esito.className = 'esito err';
   }
