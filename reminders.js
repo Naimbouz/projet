@@ -2,7 +2,7 @@
 // Email: invio REALE via Brevo (gratuito) se BREVO_API_KEY è configurata,
 // altrimenti (e per gli altri canali) l'invio è SIMULATO (scrive nel log).
 
-import { CANALI_PROMEMORIA } from './validation.js';
+import { CANALI_PROMEMORIA, normalizzaDataOra } from './validation.js';
 
 /**
  * Appuntamenti futuri che necessitano un promemoria, entro X ore dall'adesso.
@@ -94,19 +94,39 @@ async function inviaMessaggio(canale, destinatario, nome, oggetto, messaggio) {
   return 'simulato';
 }
 
+// Invia il promemoria per UN appuntamento: invia, registra nel log e marca inviato.
+// Riutilizzato sia dall'invio immediato sia dallo scheduler dei programmati.
+// @returns {Promise<{ ok: boolean, motivo?: string, esito?: string }>}
+async function inviaAppuntamento(db, app, canale) {
+  const destinatario = destinatarioPerCanale(app, canale);
+  if (!destinatario) {
+    return { ok: false, motivo: `nessun recapito per il canale ${canale}` };
+  }
+  const oggetto = `Promemoria appuntamento - ${app.sede_nome}`;
+  const messaggio =
+    `Gentile ${app.nome}, le ricordiamo il suo appuntamento presso ` +
+    `${app.sede_nome} il ${app.data_ora}. Risponda per confermare.`;
+  try {
+    const esito = await inviaMessaggio(canale, destinatario, app.nome, oggetto, messaggio);
+    db.prepare(
+      `INSERT INTO promemoria_log (appuntamento_id, canale, destinatario, messaggio)
+       VALUES (?, ?, ?, ?)`
+    ).run(app.id, canale, destinatario, messaggio);
+    db.prepare('UPDATE appuntamenti SET promemoria_inviato = 1 WHERE id = ?').run(app.id);
+    return { ok: true, esito, destinatario };
+  } catch (e) {
+    return { ok: false, motivo: e.message };
+  }
+}
+
 /**
- * Esegue l'automazione: trova gli appuntamenti, invia i promemoria,
- * scrive nel log e aggiorna lo stato. Se l'invio reale fallisce,
- * l'appuntamento NON viene marcato (così può essere ritentato).
+ * Invio IMMEDIATO. Due modalità: id spuntati, oppure finestra "ore prima".
  * @returns {Promise<{ inviati: number, saltati: object[], dettagli: object[] }>}
  */
 export async function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp', ids = null } = {}) {
   if (!CANALI_PROMEMORIA.includes(canale)) {
     throw new Error(`canale non valido: ${canale}`);
   }
-
-  // Due modalità: se sono passati degli id (caselle spuntate) usiamo quelli;
-  // altrimenti usiamo la finestra temporale "ore prima".
   let candidati;
   if (Array.isArray(ids) && ids.length > 0) {
     candidati = appuntamentiPerIds(db, ids);
@@ -117,37 +137,76 @@ export async function eseguiPromemoria(db, { orePrima = 24, canale = 'whatsapp',
     }
     candidati = appuntamentiDaRicordare(db, ore);
   }
+
   const dettagli = [];
   const saltati = [];
-
-  const insLog = db.prepare(
-    `INSERT INTO promemoria_log (appuntamento_id, canale, destinatario, messaggio)
-     VALUES (?, ?, ?, ?)`
-  );
-  const segnaInviato = db.prepare('UPDATE appuntamenti SET promemoria_inviato = 1 WHERE id = ?');
-
   for (const app of candidati) {
-    const destinatario = destinatarioPerCanale(app, canale);
-    if (!destinatario) {
-      // Es. canale email ma il paziente non ha fornito un indirizzo.
-      saltati.push({ appuntamento_id: app.id, motivo: `nessun recapito per il canale ${canale}` });
+    const r = await inviaAppuntamento(db, app, canale);
+    if (r.ok) dettagli.push({ appuntamento_id: app.id, canale, destinatario: r.destinatario, esito: r.esito });
+    else saltati.push({ appuntamento_id: app.id, motivo: r.motivo });
+  }
+  return { inviati: dettagli.length, saltati, dettagli };
+}
+
+/**
+ * PROGRAMMA l'invio dei promemoria a una data/ora futura.
+ * @returns {{ programmati: number, saltati: object[] }}
+ */
+export function programmaPromemoria(db, { ids = [], canale = 'whatsapp', inviaIl } = {}) {
+  if (!CANALI_PROMEMORIA.includes(canale)) {
+    throw new Error(`canale non valido: ${canale}`);
+  }
+  const quando = normalizzaDataOra(inviaIl);
+  if (!quando) {
+    throw new Error('invia_il: data/ora non valida (formato "YYYY-MM-DD HH:MM")');
+  }
+  const candidati = appuntamentiPerIds(db, ids);
+  const ins = db.prepare(
+    'INSERT INTO promemoria_programmati (appuntamento_id, canale, invia_il) VALUES (?, ?, ?)'
+  );
+  let programmati = 0;
+  for (const app of candidati) {
+    ins.run(app.id, canale, quando);
+    programmati++;
+  }
+  return { programmati, saltati: [] };
+}
+
+/**
+ * Scheduler: invia i promemoria programmati la cui ora è arrivata.
+ * Da richiamare periodicamente (setInterval). Sicuro se non c'è nulla da fare.
+ * @returns {Promise<{ inviati: number, errori: number }>}
+ */
+export async function processaProgrammati(db) {
+  const dovuti = db
+    .prepare(
+      "SELECT * FROM promemoria_programmati WHERE stato = 'in_attesa' AND invia_il <= datetime('now')"
+    )
+    .all();
+
+  let inviati = 0;
+  let errori = 0;
+  const getApp = db.prepare(
+    `SELECT a.id, a.data_ora, a.sede_id, r.nome, r.telefono, r.email, s.nome AS sede_nome
+     FROM appuntamenti a
+     JOIN richieste r ON r.id = a.richiesta_id
+     JOIN sedi s      ON s.id = a.sede_id
+     WHERE a.id = ? AND a.stato IN ('programmato','confermato') AND a.promemoria_inviato = 0`
+  );
+  const aggiorna = db.prepare('UPDATE promemoria_programmati SET stato = ? WHERE id = ?');
+
+  for (const p of dovuti) {
+    const app = getApp.get(p.appuntamento_id);
+    if (!app) {
+      // Appuntamento non più idoneo (annullato o già avvisato).
+      aggiorna.run('errore', p.id);
+      errori++;
       continue;
     }
-    const oggetto = `Promemoria appuntamento - ${app.sede_nome}`;
-    const messaggio =
-      `Gentile ${app.nome}, le ricordiamo il suo appuntamento presso ` +
-      `${app.sede_nome} il ${app.data_ora}. Risponda per confermare.`;
-
-    try {
-      const esito = await inviaMessaggio(canale, destinatario, app.nome, oggetto, messaggio);
-      insLog.run(app.id, canale, destinatario, messaggio);
-      segnaInviato.run(app.id);
-      dettagli.push({ appuntamento_id: app.id, canale, destinatario, messaggio, esito });
-    } catch (e) {
-      // Invio fallito (es. email rifiutata): registriamo ma non marchiamo inviato.
-      saltati.push({ appuntamento_id: app.id, motivo: e.message });
-    }
+    const r = await inviaAppuntamento(db, app, p.canale);
+    aggiorna.run(r.ok ? 'inviato' : 'errore', p.id);
+    if (r.ok) inviati++;
+    else errori++;
   }
-
-  return { inviati: dettagli.length, saltati, dettagli };
+  return { inviati, errori };
 }

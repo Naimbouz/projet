@@ -202,6 +202,9 @@
       <h2 data-i18n="h_automazione">Automazione promemoria</h2>
       <div class="form-card">
         <div class="filters">
+          <label data-i18n="lbl_cerca_nome">Cerca per nome
+            <input type="search" id="prom-q" placeholder="..." />
+          </label>
           <label data-i18n="lbl_sede">Sede
             <select id="prom-sede"><option value="" data-i18n="opt_tutte">Tutte</option></select>
           </label>
@@ -214,6 +217,8 @@
               <option value="168" data-i18n="opt_f168">Entro 7 giorni</option>
             </select>
           </label>
+        </div>
+        <div class="filters">
           <label data-i18n="th_canale">Canale
             <select id="prom-canale">
               <option value="whatsapp">whatsapp</option>
@@ -221,9 +226,12 @@
               <option value="email">email</option>
             </select>
           </label>
+          <label data-i18n="lbl_quando">Invia il (opzionale)
+            <input type="datetime-local" id="prom-quando" />
+          </label>
           <button id="btn-promemoria" class="btn-primary" data-i18n="btn_promemoria">Esegui promemoria</button>
         </div>
-        <p class="hint" data-i18n="prom_hint">Spunta gli appuntamenti da avvisare; se non spunti nulla, verranno avvisati tutti quelli elencati.</p>
+        <p class="hint" data-i18n="prom_hint">Spunta chi avvisare; lascia vuota la data per inviare subito, oppure scegli una data/ora per programmare l'invio.</p>
         <span id="prom-esito" class="esito"></span>
       </div>
 
@@ -234,6 +242,18 @@
           <th data-i18n="th_dataora">Data/ora</th>
           <th data-i18n="th_paziente">Paziente</th>
           <th data-i18n="th_contatto">Contatto</th>
+          <th data-i18n="th_sede">Sede</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+
+      <h3 data-i18n="h_programmati">Promemoria programmati</h3>
+      <table class="data-table" id="tab-programmati">
+        <thead><tr>
+          <th data-i18n="th_quando">Invio previsto</th>
+          <th data-i18n="th_paziente">Paziente</th>
+          <th data-i18n="th_canale">Canale</th>
+          <th data-i18n="th_dataora">Appuntamento</th>
           <th data-i18n="th_sede">Sede</th>
         </tr></thead>
         <tbody></tbody>
