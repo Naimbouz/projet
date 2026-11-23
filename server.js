@@ -3,6 +3,7 @@ import express from 'express';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { openDb } from './db.js';
+import { popola } from './seed.js';
 import {
   validaRichiesta, validaStatoRichiesta,
   validaAppuntamento, validaStatoAppuntamento,
@@ -12,6 +13,13 @@ import { eseguiPromemoria } from './reminders.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = openDb();
+
+// Su un hosting con disco effimero il database riparte vuoto a ogni riavvio.
+// Se non ci sono sedi, inseriamo automaticamente i dati di esempio (demo).
+if (db.prepare('SELECT COUNT(*) AS c FROM sedi').get().c === 0) {
+  const r = popola(db);
+  console.log(`Database vuoto: inseriti dati di esempio (${r.richieste} richieste).`);
+}
 
 const app = express();
 app.use(express.json());                                   // legge i corpi JSON

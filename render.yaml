@@ -1,0 +1,12 @@
+# Configurazione per il deploy gratuito su Render (https://render.com).
+# "New +" -> "Blueprint" e seleziona il repository: Render legge questo file.
+services:
+  - type: web
+    name: smileflow
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
