@@ -9,7 +9,7 @@ import {
   validaAppuntamento, validaStatoAppuntamento,
 } from './validation.js';
 import { tuttiGliStats } from './stats.js';
-import { eseguiPromemoria } from './reminders.js';
+import { eseguiPromemoria, programmaPromemoria, processaProgrammati } from './reminders.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = openDb();
@@ -181,6 +181,11 @@ app.get('/api/appuntamenti', (req, res) => {
     parametri.push(Number(req.query.sede));
   }
 
+  if (req.query.q && String(req.query.q).trim() !== '') {
+    condizioni.push('r.nome LIKE ?');
+    parametri.push(`%${String(req.query.q).trim()}%`);
+  }
+
   const entroOre = Number(req.query.entro_ore);
   if (Number.isInteger(entroOre) && entroOre > 0) {
     condizioni.push("a.data_ora > datetime('now') AND a.data_ora <= datetime('now', ?)");
@@ -264,6 +269,38 @@ app.post('/api/promemoria/esegui', async (req, res) => {
   }
 });
 
+// POST /api/promemoria/programma : programma l'invio a una data/ora futura.
+// Corpo: { ids: number[], canale, invia_il: "YYYY-MM-DD HH:MM" }
+app.post('/api/promemoria/programma', (req, res) => {
+  try {
+    const risultato = programmaPromemoria(db, {
+      ids: req.body?.ids ?? [],
+      canale: req.body?.canale ?? 'whatsapp',
+      inviaIl: req.body?.invia_il,
+    });
+    res.json(risultato);
+  } catch (e) {
+    res.status(400).json({ errors: [e.message] });
+  }
+});
+
+// GET /api/promemoria/programmati : elenco dei promemoria ancora in attesa.
+app.get('/api/promemoria/programmati', (req, res) => {
+  const righe = db
+    .prepare(
+      `SELECT p.id, p.invia_il, p.canale, p.stato,
+              a.data_ora, r.nome, s.nome AS sede_nome
+       FROM promemoria_programmati p
+       JOIN appuntamenti a ON a.id = p.appuntamento_id
+       JOIN richieste r    ON r.id = a.richiesta_id
+       JOIN sedi s         ON s.id = a.sede_id
+       WHERE p.stato = 'in_attesa'
+       ORDER BY p.invia_il ASC`
+    )
+    .all();
+  res.json(righe);
+});
+
 // --- Avvio del server ------------------------------------------------------
 const PORT = process.env.PORT || 3000;
 
@@ -272,6 +309,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => {
     console.log(`SmileFlow in ascolto su http://localhost:${PORT}`);
   });
+
+  // Scheduler: ogni minuto invia i promemoria programmati la cui ora è arrivata.
+  setInterval(() => {
+    processaProgrammati(db)
+      .then((r) => { if (r.inviati || r.errori) console.log(`Scheduler: ${r.inviati} inviati, ${r.errori} errori.`); })
+      .catch((e) => console.error('Scheduler errore:', e));
+  }, 60 * 1000);
 }
 
 export { app, db };

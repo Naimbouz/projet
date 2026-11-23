@@ -1,7 +1,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../db.js';
-import { eseguiPromemoria } from '../reminders.js';
+import { eseguiPromemoria, programmaPromemoria, processaProgrammati } from '../reminders.js';
 
 let db;
 
@@ -66,4 +66,27 @@ test('selezione per id: avvisa l\'appuntamento scelto anche fuori finestra', asy
 
 test('canale non valido: errore', async () => {
   await assert.rejects(() => eseguiPromemoria(db, { canale: 'piccione' }), /canale non valido/);
+});
+
+test('programmazione: nel futuro non parte subito', async () => {
+  const r = programmaPromemoria(db, { ids: [1], canale: 'whatsapp', inviaIl: '2099-01-01 10:00' });
+  assert.equal(r.programmati, 1);
+
+  const p = await processaProgrammati(db); // non ancora dovuto
+  assert.equal(p.inviati, 0);
+  assert.equal(db.prepare('SELECT promemoria_inviato c FROM appuntamenti WHERE id = 1').get().c, 0);
+});
+
+test('programmazione: quando l\'ora è passata, lo scheduler invia', async () => {
+  programmaPromemoria(db, { ids: [1], canale: 'whatsapp', inviaIl: '2000-01-01 10:00' });
+  const p = await processaProgrammati(db);
+  assert.equal(p.inviati, 1);
+  assert.equal(db.prepare('SELECT promemoria_inviato c FROM appuntamenti WHERE id = 1').get().c, 1);
+  // Non viene reinviato al giro successivo.
+  const p2 = await processaProgrammati(db);
+  assert.equal(p2.inviati, 0);
+});
+
+test('programmazione: data non valida -> errore', () => {
+  assert.throws(() => programmaPromemoria(db, { ids: [1], canale: 'whatsapp', inviaIl: 'boh' }), /invia_il/);
 });

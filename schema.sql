@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS promemoria_log (
   FOREIGN KEY (appuntamento_id) REFERENCES appuntamenti(id) ON DELETE CASCADE
 );
 
+-- Promemoria programmati (invio differito a una data/ora scelta).
+CREATE TABLE IF NOT EXISTS promemoria_programmati (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  appuntamento_id INTEGER NOT NULL,
+  canale          TEXT NOT NULL CHECK (canale IN ('whatsapp','sms','email')),
+  invia_il        TEXT NOT NULL,                 -- quando inviare (ISO 8601)
+  stato           TEXT NOT NULL DEFAULT 'in_attesa' CHECK (stato IN ('in_attesa','inviato','errore')),
+  creato_il       TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (appuntamento_id) REFERENCES appuntamenti(id) ON DELETE CASCADE
+);
+
 -- Indici utili per i filtri e le statistiche.
 CREATE INDEX IF NOT EXISTS idx_richieste_canale   ON richieste(canale);
 CREATE INDEX IF NOT EXISTS idx_richieste_sede      ON richieste(sede_id);

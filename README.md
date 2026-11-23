@@ -24,6 +24,9 @@ dentistici.
 - **Ricerca e filtri** sulle richieste (testo, sede, periodo, canale, stato).
 - **Esportazione CSV** delle richieste filtrate.
 - **Fissare un appuntamento** da una richiesta (che diventa "convertita").
+- **Pagina Promemoria dedicata**: ricerca per nome, filtri sede/finestra, selezione
+  dei pazienti, invio **immediato** o **programmato** a una data/ora (uno scheduler
+  invia i promemoria quando arriva l'ora).
 - **Gestione dello stato** di richieste e appuntamenti.
 - Interfaccia **bilingue IT/FR** e notifiche (toast).
 
@@ -89,10 +92,12 @@ docs/workflow.md  workflow di automazione in stile n8n
 | GET    | `/api/richieste/export.csv`  | Esporta in CSV le richieste filtrate |
 | PATCH  | `/api/richieste/:id`         | Aggiorna lo `stato` della richiesta |
 | GET    | `/api/stats`                 | KPI: riepilogo di oggi, andamento 14 giorni, conversione, costo, in attesa |
-| GET    | `/api/appuntamenti`          | Elenco appuntamenti (filtro opzionale `entro_ore`) |
+| GET    | `/api/appuntamenti`          | Elenco appuntamenti (filtri `entro_ore`, `sede`, `q`, `da_avvisare`) |
 | POST   | `/api/appuntamenti`          | Fissa un appuntamento da una richiesta (la marca "convertita") |
 | PATCH  | `/api/appuntamenti/:id`      | Aggiorna lo `stato` dell'appuntamento |
-| POST   | `/api/promemoria/esegui`     | Lancia l'automazione dei promemoria |
+| POST   | `/api/promemoria/esegui`     | Invia subito i promemoria (per id o per finestra oraria) |
+| POST   | `/api/promemoria/programma`  | Programma l'invio dei promemoria a una data/ora futura |
+| GET    | `/api/promemoria/programmati`| Elenco dei promemoria programmati in attesa |
 
 ### Esempi
 

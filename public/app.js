@@ -89,9 +89,11 @@ const I18N = {
     btn_fissa: 'Fissa appuntamento', btn_conferma: 'Conferma', btn_annulla: 'Annulla',
     toast_appuntamento_ok: 'Appuntamento fissato', toast_stato_ok: 'Stato aggiornato', toast_errore: 'Operazione non riuscita',
     tab_promemoria: 'Promemoria', lbl_finestra: 'Finestra temporale', h_da_avvisare: 'Appuntamenti da avvisare',
-    th_contatto: 'Contatto',
+    th_contatto: 'Contatto', lbl_cerca_nome: 'Cerca per nome', lbl_quando: 'Invia il (opzionale)',
+    h_programmati: 'Promemoria programmati', th_quando: 'Invio previsto',
     opt_f24: 'Entro 24 ore', opt_f48: 'Entro 48 ore', opt_f72: 'Entro 72 ore', opt_f168: 'Entro 7 giorni',
-    prom_hint: 'Spunta gli appuntamenti da avvisare; se non spunti nulla, verranno avvisati tutti quelli elencati.',
+    prom_hint: 'Spunta chi avvisare; lascia vuota la data per inviare subito, oppure scegli una data/ora per programmare.',
+    toast_programmato: 'Promemoria programmati: {0}',
   },
   fr: {
     tagline: 'Demandes, rendez-vous et rappels — démo', badge_demo: 'données fictives',
@@ -125,9 +127,11 @@ const I18N = {
     btn_fissa: 'Fixer un RDV', btn_conferma: 'Confirmer', btn_annulla: 'Annuler',
     toast_appuntamento_ok: 'Rendez-vous fixé', toast_stato_ok: 'Statut mis à jour', toast_errore: 'Opération échouée',
     tab_promemoria: 'Rappels', lbl_finestra: 'Fenêtre temporelle', h_da_avvisare: 'Rendez-vous à notifier',
-    th_contatto: 'Contact',
+    th_contatto: 'Contact', lbl_cerca_nome: 'Rechercher par nom', lbl_quando: 'Envoyer le (optionnel)',
+    h_programmati: 'Rappels planifiés', th_quando: 'Envoi prévu',
     opt_f24: 'Sous 24 heures', opt_f48: 'Sous 48 heures', opt_f72: 'Sous 72 heures', opt_f168: 'Sous 7 jours',
-    prom_hint: 'Coche les rendez-vous à notifier ; si tu ne coches rien, tous ceux listés seront notifiés.',
+    prom_hint: 'Coche qui notifier ; laisse la date vide pour envoyer tout de suite, ou choisis une date/heure pour planifier.',
+    toast_programmato: 'Rappels planifiés : {0}',
   },
 };
 
@@ -412,6 +416,8 @@ function queryPromemoria() {
   const params = new URLSearchParams({ da_avvisare: '1' });
   if ($('#prom-sede').value) params.set('sede', $('#prom-sede').value);
   if ($('#prom-finestra').value) params.set('entro_ore', $('#prom-finestra').value);
+  const q = $('#prom-q').value.trim();
+  if (q) params.set('q', q);
   return params;
 }
 
@@ -430,8 +436,25 @@ async function caricaPromemoria() {
   $('#sel-tutti').checked = false;
 }
 
+// Elenco dei promemoria già programmati (in attesa).
+async function caricaProgrammati() {
+  const righe = await api('/api/promemoria/programmati');
+  $('#tab-programmati tbody').innerHTML = righe
+    .map((p) => `<tr>
+        <td>${fmtData(p.invia_il)}</td><td>${esc(p.nome)}</td>
+        <td><span class="pill">${p.canale}</span></td>
+        <td>${fmtData(p.data_ora)}</td><td>${esc(p.sede_nome)}</td>
+      </tr>`)
+    .join('');
+}
+
 $('#prom-sede').addEventListener('change', caricaPromemoria);
 $('#prom-finestra').addEventListener('change', caricaPromemoria);
+let timerPromQ;
+$('#prom-q').addEventListener('input', () => {
+  clearTimeout(timerPromQ);
+  timerPromQ = setTimeout(caricaPromemoria, 300);
+});
 
 // "Seleziona tutti"
 $('#sel-tutti').addEventListener('change', (e) => {
@@ -441,7 +464,7 @@ $('#sel-tutti').addEventListener('change', (e) => {
 $('#btn-promemoria').addEventListener('click', async () => {
   const esito = $('#prom-esito');
   const spuntati = [...document.querySelectorAll('#tab-promemoria .sel-app:checked')].map((c) => Number(c.value));
-  // Se nessuna casella è spuntata, avvisiamo tutti gli appuntamenti elencati (filtrati).
+  // Se nessuna casella è spuntata, usiamo tutti gli appuntamenti elencati (filtrati).
   const tutti = [...document.querySelectorAll('#tab-promemoria .sel-app')].map((c) => Number(c.value));
   const ids = spuntati.length > 0 ? spuntati : tutti;
   if (ids.length === 0) {
@@ -449,15 +472,33 @@ $('#btn-promemoria').addEventListener('click', async () => {
     esito.className = 'esito';
     return;
   }
+
+  const canale = $('#prom-canale').value;
+  const quando = $('#prom-quando').value; // "YYYY-MM-DDTHH:MM" o ""
+  const programmato = quando && new Date(quando) > new Date();
+
   try {
-    const r = await api('/api/promemoria/esegui', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ canale: $('#prom-canale').value, ids }),
-    });
-    esito.textContent = t('prom_result', r.inviati, r.saltati.length);
-    esito.className = 'esito ok';
-    await Promise.all([caricaPromemoria(), caricaAppuntamenti(), caricaStats()]);
+    if (programmato) {
+      // Invio DIFFERITO: lo scheduler lo invierà all'ora scelta.
+      const r = await api('/api/promemoria/programma', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canale, ids, invia_il: quando }),
+      });
+      esito.textContent = t('toast_programmato', r.programmati);
+      esito.className = 'esito ok';
+      toast(t('toast_programmato', r.programmati));
+    } else {
+      // Invio IMMEDIATO.
+      const r = await api('/api/promemoria/esegui', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ canale, ids }),
+      });
+      esito.textContent = t('prom_result', r.inviati, r.saltati.length);
+      esito.className = 'esito ok';
+    }
+    await Promise.all([caricaPromemoria(), caricaProgrammati(), caricaAppuntamenti(), caricaStats()]);
   } catch (err) {
     esito.textContent = (err.errors || [t('esito_errore')]).join(' · ');
     esito.className = 'esito err';
@@ -471,7 +512,7 @@ $('#btn-lang').addEventListener('click', async () => {
   applyI18n();                       // etichette statiche
   catturaUtm();                      // banner utm
   // Ricarichiamo i contenuti generati (KPI, tabelle) nella nuova lingua.
-  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti(), caricaPromemoria()]);
+  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti(), caricaPromemoria(), caricaProgrammati()]);
 });
 
 // --- Avvio -----------------------------------------------------------------
@@ -479,6 +520,6 @@ async function init() {
   applyI18n();                       // applica la lingua salvata
   catturaUtm();
   await caricaSedi();
-  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti(), caricaPromemoria()]);
+  await Promise.all([caricaStats(), caricaRichieste(), caricaAppuntamenti(), caricaPromemoria(), caricaProgrammati()]);
 }
 init().catch((e) => console.error('Errore di inizializzazione', e));
