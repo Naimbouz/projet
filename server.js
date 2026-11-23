@@ -6,10 +6,6 @@ import { openDb } from './db.js';
 import { validaRichiesta, validaStatoRichiesta } from './validation.js';
 import { tuttiGliStats } from './stats.js';
 import { eseguiPromemoria } from './reminders.js';
-import {
-  passwordCorretta, creaSessione, distruggiSessione,
-  tokenDellaRichiesta, tokenValido, richiediAuth, COOKIE_NAME,
-} from './auth.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = openDb();
@@ -17,35 +13,6 @@ const db = openDb();
 const app = express();
 app.use(express.json());                                   // legge i corpi JSON
 app.use(express.static(join(__dirname, 'public')));        // serve il front-end
-
-// --- AUTENTICAZIONE --------------------------------------------------------
-// Rotte pubbliche: login, logout e stato della sessione.
-
-// POST /api/login : verifica la password e crea una sessione (cookie).
-app.post('/api/login', (req, res) => {
-  if (!passwordCorretta(req.body?.password)) {
-    return res.status(401).json({ errors: ['password errata'] });
-  }
-  const token = creaSessione();
-  // httpOnly: il cookie non è leggibile dal JavaScript del browser (anti-XSS).
-  res.cookie(COOKIE_NAME, token, { httpOnly: true, sameSite: 'strict', path: '/' });
-  res.json({ ok: true });
-});
-
-// POST /api/logout : chiude la sessione.
-app.post('/api/logout', (req, res) => {
-  distruggiSessione(tokenDellaRichiesta(req));
-  res.clearCookie(COOKIE_NAME);
-  res.json({ ok: true });
-});
-
-// GET /api/session : indica se la richiesta è autenticata (per il front-end).
-app.get('/api/session', (req, res) => {
-  res.json({ authenticated: tokenValido(req) });
-});
-
-// Barriera: tutte le altre rotte /api richiedono l'autenticazione.
-app.use('/api', richiediAuth);
 
 // Converte il filtro "periodo" (giorni) in una clausola SQL sicura.
 // Restituisce null se il periodo non è valido/assente (nessun filtro temporale).
