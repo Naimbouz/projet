@@ -7,6 +7,20 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- ============ SCHERMATA DI LOGIN ============ -->
+  <div id="login-screen" class="login-screen" hidden>
+    <form id="form-login" class="login-card">
+      <span class="brand-mark">◠‿◠</span>
+      <h1>SmileFlow</h1>
+      <label data-i18n="lbl_password">Password
+        <input type="password" id="login-password" required autofocus />
+      </label>
+      <button type="submit" class="btn-primary" data-i18n="btn_entra">Entra</button>
+      <span id="login-esito" class="esito"></span>
+    </form>
+  </div>
+
+  <div id="app" hidden>
   <header class="topbar">
     <div class="brand">
       <span class="brand-mark">◠‿◠</span>
@@ -17,6 +31,7 @@
     </div>
     <div class="topbar-right">
       <button id="btn-lang" class="btn-lang" title="Tradurre in francese">FR</button>
+      <button id="btn-logout" class="btn-lang" data-i18n="btn_logout">Esci</button>
       <span class="badge-demo" data-i18n="badge_demo">dati fittizi</span>
     </div>
   </header>
@@ -204,6 +219,7 @@ GROUP BY r.canale
 ORDER BY tasso DESC;</pre>
     </section>
   </main>
+  </div><!-- /#app -->
 
   <script src="app.js"></script>
 </body>
