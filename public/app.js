@@ -172,6 +172,10 @@ document.querySelectorAll('.tab').forEach((btn) => {
     document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
     btn.classList.add('active');
     $('#' + btn.dataset.tab).classList.add('active');
+    // Aggiorna i dati della scheda aperta (così riflette le ultime modifiche).
+    if (btn.dataset.tab === 'promemoria') { caricaPromemoria(); caricaProgrammati(); }
+    else if (btn.dataset.tab === 'appuntamenti') { caricaAppuntamenti(); }
+    else if (btn.dataset.tab === 'dashboard') { caricaStats(); }
   });
 });
 
@@ -327,7 +331,7 @@ function apriFissaAppuntamento(btn) {
         body: JSON.stringify({ richiesta_id: Number(id), data_ora: dataOra }),
       });
       toast(t('toast_appuntamento_ok'));
-      await Promise.all([caricaRichieste(), caricaAppuntamenti(), caricaStats()]);
+      await Promise.all([caricaRichieste(), caricaAppuntamenti(), caricaStats(), caricaPromemoria()]);
     } catch (e) {
       toast((e.errors ? e.errors.join(', ') : t('toast_errore')), 'err');
     }
