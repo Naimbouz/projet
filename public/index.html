@@ -39,7 +39,11 @@
     <!-- ============ DASHBOARD ============ -->
     <section id="dashboard" class="panel active">
       <h2 data-i18n="kpi_title">Indicatori (KPI)</h2>
+      <div id="riepilogo-cards" class="cards"></div>
       <div id="kpi-cards" class="cards"></div>
+
+      <h3 data-i18n="h_andamento">Andamento richieste (14 giorni)</h3>
+      <div id="grafico" class="chart-box"></div>
 
       <h3 data-i18n="h_conversione">Conversione per canale</h3>
       <table class="data-table" id="tab-conversione">
@@ -126,6 +130,9 @@
 
       <h2 data-i18n="h_elenco_richieste">Elenco richieste</h2>
       <div class="filters">
+        <label data-i18n="lbl_cerca">Cerca (nome o telefono)
+          <input type="search" id="filtro-q" placeholder="..." />
+        </label>
         <label data-i18n="lbl_sede">Sede
           <select id="filtro-sede"><option value="" data-i18n="opt_tutte">Tutte</option></select>
         </label>
@@ -137,6 +144,27 @@
             <option value="90" data-i18n="opt_90">Ultimi 90 giorni</option>
           </select>
         </label>
+        <label data-i18n="th_canale">Canale
+          <select id="filtro-canale">
+            <option value="" data-i18n="opt_tutti">Tutti</option>
+            <option value="google">google</option>
+            <option value="meta">meta</option>
+            <option value="instagram">instagram</option>
+            <option value="referral">referral</option>
+            <option value="diretto">diretto</option>
+          </select>
+        </label>
+        <label data-i18n="th_stato">Stato
+          <select id="filtro-stato">
+            <option value="" data-i18n="opt_tutti">Tutti</option>
+            <option value="nuova">nuova</option>
+            <option value="contattata">contattata</option>
+            <option value="in_attesa">in_attesa</option>
+            <option value="convertita">convertita</option>
+            <option value="persa">persa</option>
+          </select>
+        </label>
+        <button id="btn-export" class="btn-secondary" data-i18n="btn_export">Esporta CSV</button>
       </div>
       <table class="data-table" id="tab-richieste">
         <thead><tr>
@@ -147,6 +175,7 @@
           <th data-i18n="th_trattamento">Trattamento</th>
           <th data-i18n="th_stato">Stato</th>
           <th data-i18n="th_data">Data</th>
+          <th data-i18n="th_azioni">Azioni</th>
         </tr></thead>
         <tbody></tbody>
       </table>
@@ -204,6 +233,8 @@ GROUP BY r.canale
 ORDER BY tasso DESC;</pre>
     </section>
   </main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
 
   <script src="app.js"></script>
 </body>
