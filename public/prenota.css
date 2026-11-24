@@ -80,6 +80,9 @@
   padding: 16px;
   z-index: 300;
 }
+/* L'attributo HTML "hidden" deve vincere sul display:flex qui sopra,
+   altrimenti i pannelli resterebbero visibili al caricamento. */
+.overlay[hidden] { display: none; }
 .modal {
   background: var(--card);
   border-radius: 14px;
