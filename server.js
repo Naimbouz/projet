@@ -10,6 +10,8 @@ import {
 } from './validation.js';
 import { tuttiGliStats } from './stats.js';
 import { eseguiPromemoria, programmaPromemoria, processaProgrammati } from './reminders.js';
+import { disponibilitaPerGiorno, slotValido } from './availability.js';
+import { TRATTAMENTI } from './validation.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const db = openDb();
@@ -299,6 +301,115 @@ app.get('/api/promemoria/programmati', (req, res) => {
     )
     .all();
   res.json(righe);
+});
+
+// --- PRENOTAZIONE ONLINE (lato cliente) ------------------------------------
+
+// GET /api/disponibilita?sede=ID : slot dei prossimi giorni, con stato
+// 'libero' / 'occupato'. Gli occupati sono gli appuntamenti non annullati.
+app.get('/api/disponibilita', (req, res) => {
+  const sedeId = Number(req.query.sede);
+  if (!Number.isInteger(sedeId) || sedeId <= 0) {
+    return res.status(400).json({ errors: ['sede: intero positivo obbligatorio'] });
+  }
+  const sede = db.prepare('SELECT id, nome FROM sedi WHERE id = ?').get(sedeId);
+  if (!sede) {
+    return res.status(400).json({ errors: ['sede: sede inesistente'] });
+  }
+
+  // Chiavi "YYYY-MM-DD HH:MM" già occupate per questa sede (no annullati).
+  const righe = db
+    .prepare(
+      `SELECT substr(data_ora, 1, 16) AS k
+       FROM appuntamenti
+       WHERE sede_id = ? AND stato != 'annullato'
+         AND data_ora >= datetime('now', 'start of day')`
+    )
+    .all(sedeId);
+  const occupati = new Set(righe.map((r) => r.k));
+
+  res.json({
+    sede: { id: sede.id, nome: sede.nome },
+    giorni: disponibilitaPerGiorno(occupati),
+  });
+});
+
+// POST /api/prenota : il cliente sceglie uno slot libero e conferma.
+// Corpo: { sede_id, data_ora:"YYYY-MM-DD HH:MM", nome, telefono, email?, trattamento? }
+// Crea la richiesta (canale 'diretto') e l'appuntamento (stato 'programmato').
+app.post('/api/prenota', (req, res) => {
+  const b = req.body || {};
+
+  const errors = [];
+  if (typeof b.nome !== 'string' || b.nome.trim() === '') errors.push('nome: obbligatorio');
+  else if (b.nome.trim().length > 100) errors.push('nome: massimo 100 caratteri');
+  if (typeof b.telefono !== 'string' || !/^[0-9+().\s-]{6,25}$/.test(b.telefono.trim())) {
+    errors.push('telefono: formato non valido');
+  }
+  const sedeId = Number(b.sede_id);
+  if (!Number.isInteger(sedeId) || sedeId <= 0) errors.push('sede_id: obbligatorio');
+  const trattamento = b.trattamento || 'controllo';
+  if (!TRATTAMENTI.includes(trattamento)) errors.push('trattamento: valore non valido');
+  if (b.email != null && b.email !== '' &&
+      !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.email))) {
+    errors.push('email: formato non valido');
+  }
+  // La chiave slot "YYYY-MM-DD HH:MM" deve essere uno slot valido e futuro.
+  const chiave = typeof b.data_ora === 'string' ? b.data_ora.slice(0, 16) : '';
+  if (!slotValido(chiave)) errors.push('data_ora: slot non valido o non più disponibile');
+
+  if (errors.length > 0) return res.status(400).json({ errors });
+
+  const sede = db.prepare('SELECT id, nome FROM sedi WHERE id = ?').get(sedeId);
+  if (!sede) return res.status(400).json({ errors: ['sede_id: sede inesistente'] });
+
+  const dataOraFull = `${chiave}:00`; // "YYYY-MM-DD HH:MM:00"
+
+  // Transazione: evita la doppia prenotazione dello stesso slot.
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const occupato = db
+      .prepare(
+        `SELECT 1 FROM appuntamenti
+         WHERE sede_id = ? AND substr(data_ora, 1, 16) = ? AND stato != 'annullato'`
+      )
+      .get(sedeId, chiave);
+    if (occupato) {
+      db.exec('ROLLBACK');
+      return res.status(409).json({ errors: ['Questo orario è appena stato prenotato. Scegli un altro slot.'] });
+    }
+
+    const infoR = db
+      .prepare(
+        `INSERT INTO richieste (nome, telefono, email, sede_id, canale, trattamento, stato, note)
+         VALUES (?, ?, ?, ?, 'diretto', ?, 'convertita', 'Prenotazione online')`
+      )
+      .run(
+        b.nome.trim(),
+        b.telefono.trim(),
+        b.email ? String(b.email).trim() : null,
+        sedeId,
+        trattamento
+      );
+
+    const infoA = db
+      .prepare(
+        `INSERT INTO appuntamenti (richiesta_id, sede_id, data_ora, stato)
+         VALUES (?, ?, ?, 'programmato')`
+      )
+      .run(infoR.lastInsertRowid, sedeId, dataOraFull);
+
+    db.exec('COMMIT');
+    res.status(201).json({
+      appuntamento_id: infoA.lastInsertRowid,
+      data_ora: dataOraFull,
+      sede: sede.nome,
+      nome: b.nome.trim(),
+    });
+  } catch (e) {
+    db.exec('ROLLBACK');
+    res.status(500).json({ errors: ['Errore durante la prenotazione: ' + e.message] });
+  }
 });
 
 // --- Avvio del server ------------------------------------------------------

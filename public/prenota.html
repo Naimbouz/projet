@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prenota un appuntamento — Il Mondo del Sorriso</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="prenota.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img class="brand-logo" src="logo.png" alt="Il Mondo del Sorriso — Cliniche Dentali, San Marino" />
+      <div>
+        <h1>Il Mondo del Sorriso</h1>
+        <p class="tagline">Prenota il tuo appuntamento online</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span class="numero-verde">☎ 800 22 22 88</span>
+    </div>
+  </header>
+
+  <main class="prenota-main">
+    <section class="form-card">
+      <label class="sede-pick">Scegli la sede
+        <select id="sel-sede"></select>
+      </label>
+      <p class="hint">
+        <span class="legenda libero"></span> libero &nbsp;·&nbsp;
+        <span class="legenda occupato"></span> riservato &nbsp;·&nbsp;
+        tocca uno slot <strong>libero</strong> per prenotare.
+      </p>
+    </section>
+
+    <div id="calendario" class="calendario"></div>
+    <p id="vuoto" class="hint" hidden>Nessuno slot disponibile per questa sede nei prossimi giorni.</p>
+  </main>
+
+  <!-- Pannello di conferma prenotazione -->
+  <div id="overlay" class="overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title">Conferma prenotazione</h2>
+      <p class="slot-scelto">
+        <strong id="slot-label"></strong><br />
+        <span id="sede-label" class="muted"></span>
+      </p>
+      <form id="form-prenota">
+        <label>Nome e cognome
+          <input type="text" name="nome" required maxlength="100" autocomplete="name" />
+        </label>
+        <label>Telefono
+          <input type="tel" name="telefono" required placeholder="+378 ..." autocomplete="tel" />
+        </label>
+        <label>Email (opzionale)
+          <input type="email" name="email" placeholder="nome@example.test" autocomplete="email" />
+        </label>
+        <label>Trattamento
+          <select name="trattamento">
+            <option value="controllo">controllo</option>
+            <option value="igiene">igiene</option>
+            <option value="ortodonzia">ortodonzia</option>
+            <option value="implantologia">implantologia</option>
+            <option value="sbiancamento">sbiancamento</option>
+            <option value="estetica">estetica</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="btn-annulla" class="btn-secondary">Annulla</button>
+          <button type="submit" class="btn-primary">Conferma</button>
+        </div>
+        <span id="prenota-esito" class="esito"></span>
+      </form>
+    </div>
+  </div>
+
+  <!-- Schermata di esito -->
+  <div id="successo" class="overlay" hidden>
+    <div class="modal successo-box">
+      <div class="check">✓</div>
+      <h2>Prenotazione confermata!</h2>
+      <p id="successo-testo" class="muted"></p>
+      <button type="button" id="btn-chiudi" class="btn-primary">Prenota un altro appuntamento</button>
+    </div>
+  </div>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="prenota.js"></script>
+</body>
+</html>
