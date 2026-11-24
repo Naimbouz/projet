@@ -23,6 +23,7 @@ const I18N = {
     caricamento: 'Caricamento…', invio: 'Invio…',
     alle: 'alle', errore_caricamento: 'Errore nel caricamento',
     successo_testo: '{0}, il tuo appuntamento del {1} presso {2} è stato registrato.',
+    successo_email: ' Ti abbiamo inviato un\'email di conferma.',
   },
   fr: {
     tagline: 'Réservez votre rendez-vous en ligne',
@@ -42,6 +43,7 @@ const I18N = {
     caricamento: 'Chargement…', invio: 'Envoi…',
     alle: 'à', errore_caricamento: 'Erreur lors du chargement',
     successo_testo: '{0}, votre rendez-vous du {1} au cabinet {2} a bien été enregistré.',
+    successo_email: ' Un email de confirmation vous a été envoyé.',
   },
 };
 
@@ -203,7 +205,9 @@ formPrenota.addEventListener('submit', async (ev) => {
     if (!r.ok) throw new Error((dati.errors || ['errore']).join(', '));
 
     overlay.hidden = true;
-    $('#successo-testo').textContent = t('successo_testo', dati.nome, slotLabel.textContent, dati.sede);
+    let msg = t('successo_testo', dati.nome, slotLabel.textContent, dati.sede);
+    if (dati.email_inviata) msg += t('successo_email');
+    $('#successo-testo').textContent = msg;
     successo.hidden = false;
   } catch (e) {
     esito.textContent = e.message;
