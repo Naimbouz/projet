@@ -88,6 +88,7 @@ const I18N = {
     btn_export: 'Esporta CSV', th_azioni: 'Azioni',
     btn_fissa: 'Fissa appuntamento', btn_conferma: 'Conferma', btn_annulla: 'Annulla',
     toast_appuntamento_ok: 'Appuntamento fissato', toast_stato_ok: 'Stato aggiornato', toast_errore: 'Operazione non riuscita',
+    conferma_annulla: 'Annullare questo appuntamento?', toast_annullato: 'Appuntamento annullato',
     tab_promemoria: 'Promemoria', lbl_finestra: 'Finestra temporale', h_da_avvisare: 'Appuntamenti da avvisare',
     th_contatto: 'Contatto', lbl_cerca_nome: 'Cerca per nome', lbl_quando: 'Invia il (opzionale)',
     h_programmati: 'Promemoria programmati', th_quando: 'Invio previsto',
@@ -126,6 +127,7 @@ const I18N = {
     btn_export: 'Exporter CSV', th_azioni: 'Actions',
     btn_fissa: 'Fixer un RDV', btn_conferma: 'Confirmer', btn_annulla: 'Annuler',
     toast_appuntamento_ok: 'Rendez-vous fixé', toast_stato_ok: 'Statut mis à jour', toast_errore: 'Opération échouée',
+    conferma_annulla: 'Annuler ce rendez-vous ?', toast_annullato: 'Rendez-vous annulé',
     tab_promemoria: 'Rappels', lbl_finestra: 'Fenêtre temporelle', h_da_avvisare: 'Rendez-vous à notifier',
     th_contatto: 'Contact', lbl_cerca_nome: 'Rechercher par nom', lbl_quando: 'Envoyer le (optionnel)',
     h_programmati: 'Rappels planifiés', th_quando: 'Envoi prévu',
@@ -387,11 +389,17 @@ async function caricaAppuntamenti() {
       const options = STATI_APP.map(
         (s) => `<option value="${s}" ${s === a.stato ? 'selected' : ''}>${s}</option>`
       ).join('');
+      // Il bottone "Annulla" compare solo se l'appuntamento è ancora attivo.
+      const annullabile = a.stato === 'programmato' || a.stato === 'confermato';
+      const azioni = annullabile
+        ? `<button class="btn-mini btn-annulla-app" data-id="${a.id}">${t('btn_annulla')}</button>`
+        : '—';
       return `<tr>
         <td>${fmtData(a.data_ora)}</td><td>${esc(a.nome)}</td><td>${esc(a.telefono)}</td>
         <td>${esc(a.sede_nome)}</td>
         <td><select class="stato-app-select" data-id="${a.id}">${options}</select></td>
         <td>${prom}</td>
+        <td>${azioni}</td>
       </tr>`;
     })
     .join('');
@@ -408,6 +416,24 @@ async function caricaAppuntamenti() {
         toast(t('toast_stato_ok'));
         caricaStats();
         caricaPromemoria(); // l'idoneità al promemoria può cambiare
+      } catch (e) {
+        toast((e.errors ? e.errors.join(', ') : t('toast_errore')), 'err');
+      }
+    });
+  });
+
+  // Bottone "Annulla": chiede conferma e mette lo stato a 'annullato'.
+  document.querySelectorAll('.btn-annulla-app').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      if (!confirm(t('conferma_annulla'))) return;
+      try {
+        await api('/api/appuntamenti/' + btn.dataset.id, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ stato: 'annullato' }),
+        });
+        toast(t('toast_annullato'));
+        await Promise.all([caricaAppuntamenti(), caricaStats(), caricaPromemoria()]);
       } catch (e) {
         toast((e.errors ? e.errors.join(', ') : t('toast_errore')), 'err');
       }
