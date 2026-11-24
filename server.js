@@ -348,10 +348,11 @@ app.post('/api/prenota', (req, res) => {
   }
   const sedeId = Number(b.sede_id);
   if (!Number.isInteger(sedeId) || sedeId <= 0) errors.push('sede_id: obbligatorio');
-  const trattamento = b.trattamento || 'controllo';
-  if (!TRATTAMENTI.includes(trattamento)) errors.push('trattamento: valore non valido');
-  if (b.email != null && b.email !== '' &&
-      !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(b.email))) {
+  const trattamento = b.trattamento;
+  if (!TRATTAMENTI.includes(trattamento)) errors.push('trattamento: obbligatorio');
+  if (typeof b.email !== 'string' || b.email.trim() === '') {
+    errors.push('email: obbligatoria');
+  } else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(b.email.trim())) {
     errors.push('email: formato non valido');
   }
   // La chiave slot "YYYY-MM-DD HH:MM" deve essere uno slot valido e futuro.
