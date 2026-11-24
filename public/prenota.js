@@ -3,6 +3,76 @@
 
 const $ = (sel) => document.querySelector(sel);
 
+// --- Traduzioni (IT / FR) --------------------------------------------------
+const I18N = {
+  it: {
+    tagline: 'Prenota il tuo appuntamento online',
+    lbl_sede: 'Scegli la sede',
+    leg_libero: 'libero', leg_occupato: 'riservato',
+    leg_istruzione: 'tocca uno slot libero per prenotare.',
+    vuoto: 'Nessuno slot disponibile per questa sede nei prossimi giorni.',
+    modal_titolo: 'Conferma prenotazione',
+    lbl_nome: 'Nome e cognome', lbl_telefono: 'Telefono',
+    lbl_email: 'Email (opzionale)', lbl_trattamento: 'Trattamento',
+    tr_controllo: 'controllo', tr_igiene: 'igiene', tr_ortodonzia: 'ortodonzia',
+    tr_implantologia: 'implantologia', tr_sbiancamento: 'sbiancamento', tr_estetica: 'estetica',
+    btn_annulla: 'Annulla', btn_conferma: 'Conferma',
+    successo_titolo: 'Prenotazione confermata!',
+    btn_altro: 'Prenota un altro appuntamento',
+    caricamento: 'Caricamento…', invio: 'Invio…',
+    alle: 'alle', errore_caricamento: 'Errore nel caricamento',
+    successo_testo: '{0}, il tuo appuntamento del {1} presso {2} è stato registrato.',
+  },
+  fr: {
+    tagline: 'Réservez votre rendez-vous en ligne',
+    lbl_sede: 'Choisissez le cabinet',
+    leg_libero: 'libre', leg_occupato: 'réservé',
+    leg_istruzione: 'appuyez sur un créneau libre pour réserver.',
+    vuoto: 'Aucun créneau disponible pour ce cabinet dans les prochains jours.',
+    modal_titolo: 'Confirmation de réservation',
+    lbl_nome: 'Nom et prénom', lbl_telefono: 'Téléphone',
+    lbl_email: 'Email (optionnel)', lbl_trattamento: 'Soin',
+    tr_controllo: 'contrôle', tr_igiene: 'hygiène', tr_ortodonzia: 'orthodontie',
+    tr_implantologia: 'implantologie', tr_sbiancamento: 'blanchiment', tr_estetica: 'esthétique',
+    btn_annulla: 'Annuler', btn_conferma: 'Confirmer',
+    successo_titolo: 'Réservation confirmée !',
+    btn_altro: 'Prendre un autre rendez-vous',
+    caricamento: 'Chargement…', invio: 'Envoi…',
+    alle: 'à', errore_caricamento: 'Erreur lors du chargement',
+    successo_testo: '{0}, votre rendez-vous du {1} au cabinet {2} a bien été enregistré.',
+  },
+};
+
+let lang = 'it';
+try { lang = localStorage.getItem('sf_lang') || 'it'; } catch { /* storage non disponibile */ }
+
+function t(key, ...args) {
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.it[key] || key;
+  args.forEach((a, i) => { s = s.replace('{' + i + '}', a); });
+  return s;
+}
+
+// Formattatore delle date secondo la lingua corrente.
+let fmtGiorno = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'short' });
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const primoTesto = el.childNodes[0];
+    if (el.tagName === 'LABEL' && primoTesto && primoTesto.nodeType === Node.TEXT_NODE) {
+      primoTesto.textContent = t(el.dataset.i18n) + ' ';
+    } else {
+      el.textContent = t(el.dataset.i18n);
+    }
+  });
+  document.documentElement.lang = lang;
+  fmtGiorno = new Intl.DateTimeFormat(lang === 'fr' ? 'fr-FR' : 'it-IT',
+    { weekday: 'long', day: 'numeric', month: 'short' });
+  const btn = $('#btn-lang');
+  btn.textContent = lang === 'it' ? 'FR' : 'IT';
+  btn.title = lang === 'it' ? 'Tradurre in francese' : 'Traduci in italiano';
+}
+
+// --- Elementi --------------------------------------------------------------
 const selSede = $('#sel-sede');
 const calendario = $('#calendario');
 const vuoto = $('#vuoto');
@@ -13,21 +83,18 @@ const slotLabel = $('#slot-label');
 const sedeLabel = $('#sede-label');
 const esito = $('#prenota-esito');
 
-let slotScelto = null; // { data_ora, label }
-
-const fmtGiorno = new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'short' });
+let slotScelto = null;
 
 function labelGiorno(data) {
-  const d = new Date(`${data}T00:00:00`);
-  return fmtGiorno.format(d);
+  return fmtGiorno.format(new Date(`${data}T00:00:00`));
 }
 
 function toast(msg, tipo = '') {
-  const t = document.createElement('div');
-  t.className = `toast ${tipo}`;
-  t.textContent = msg;
-  $('#toasts').appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+  const el = document.createElement('div');
+  el.className = `toast ${tipo}`;
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
 }
 
 async function caricaSedi() {
@@ -41,7 +108,7 @@ async function caricaSedi() {
 
 async function caricaDisponibilita() {
   const sedeId = selSede.value;
-  calendario.innerHTML = '<p class="hint">Caricamento…</p>';
+  calendario.innerHTML = `<p class="hint">${t('caricamento')}</p>`;
   vuoto.hidden = true;
   try {
     const r = await fetch(`/api/disponibilita?sede=${encodeURIComponent(sedeId)}`);
@@ -50,7 +117,7 @@ async function caricaDisponibilita() {
     rendiCalendario(dati.giorni);
   } catch (e) {
     calendario.innerHTML = '';
-    toast('Errore nel caricamento: ' + e.message, 'err');
+    toast(`${t('errore_caricamento')}: ${e.message}`, 'err');
   }
 }
 
@@ -80,7 +147,7 @@ function rendiCalendario(giorni) {
       btn.textContent = s.ora;
       if (s.stato === 'occupato') {
         btn.disabled = true;
-        btn.title = 'Riservato';
+        btn.title = t('leg_occupato');
       } else {
         btn.addEventListener('click', () => apriConferma(s.data_ora, g.data, s.ora));
       }
@@ -93,7 +160,7 @@ function rendiCalendario(giorni) {
 
 function apriConferma(dataOra, data, ora) {
   slotScelto = { data_ora: dataOra };
-  slotLabel.textContent = `${labelGiorno(data)} alle ${ora}`;
+  slotLabel.textContent = `${labelGiorno(data)} ${t('alle')} ${ora}`;
   sedeLabel.textContent = selSede.options[selSede.selectedIndex].textContent;
   esito.textContent = '';
   esito.className = 'esito';
@@ -112,7 +179,7 @@ formPrenota.addEventListener('submit', async (ev) => {
   if (!slotScelto) return;
   const btn = formPrenota.querySelector('button[type=submit]');
   btn.disabled = true;
-  esito.textContent = 'Invio…';
+  esito.textContent = t('invio');
   esito.className = 'esito';
 
   const corpo = {
@@ -134,14 +201,12 @@ formPrenota.addEventListener('submit', async (ev) => {
     if (!r.ok) throw new Error((dati.errors || ['errore']).join(', '));
 
     overlay.hidden = true;
-    $('#successo-testo').textContent =
-      `${dati.nome}, il tuo appuntamento del ${slotLabel.textContent} presso ${dati.sede} è stato registrato.`;
+    $('#successo-testo').textContent = t('successo_testo', dati.nome, slotLabel.textContent, dati.sede);
     successo.hidden = false;
   } catch (e) {
     esito.textContent = e.message;
     esito.className = 'esito err';
-    // Se lo slot è stato preso nel frattempo, ricarica la disponibilità.
-    if (/prenotat|disponibil|slot/i.test(e.message)) caricaDisponibilita();
+    if (/prenotat|disponibil|slot|réserv|dispon/i.test(e.message)) caricaDisponibilita();
   } finally {
     btn.disabled = false;
   }
@@ -155,4 +220,14 @@ $('#btn-chiudi').addEventListener('click', () => {
 });
 selSede.addEventListener('change', caricaDisponibilita);
 
+// Bascule della lingua IT/FR (memorizzata, condivisa con l'app del personale).
+$('#btn-lang').addEventListener('click', () => {
+  lang = lang === 'it' ? 'fr' : 'it';
+  try { localStorage.setItem('sf_lang', lang); } catch { /* ignora */ }
+  applyI18n();
+  // Ricostruisce il calendario per aggiornare le etichette dei giorni.
+  if (selSede.value) caricaDisponibilita();
+});
+
+applyI18n();
 caricaSedi();
