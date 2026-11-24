@@ -9,7 +9,7 @@ import {
   validaAppuntamento, validaStatoAppuntamento,
 } from './validation.js';
 import { tuttiGliStats } from './stats.js';
-import { eseguiPromemoria, programmaPromemoria, processaProgrammati } from './reminders.js';
+import { eseguiPromemoria, programmaPromemoria, processaProgrammati, inviaEmailBrevo } from './reminders.js';
 import { disponibilitaPerGiorno, slotValido } from './availability.js';
 import { TRATTAMENTI } from './validation.js';
 
@@ -337,7 +337,7 @@ app.get('/api/disponibilita', (req, res) => {
 // POST /api/prenota : il cliente sceglie uno slot libero e conferma.
 // Corpo: { sede_id, data_ora:"YYYY-MM-DD HH:MM", nome, telefono, email?, trattamento? }
 // Crea la richiesta (canale 'diretto') e l'appuntamento (stato 'programmato').
-app.post('/api/prenota', (req, res) => {
+app.post('/api/prenota', async (req, res) => {
   const b = req.body || {};
 
   const errors = [];
@@ -367,6 +367,7 @@ app.post('/api/prenota', (req, res) => {
   const dataOraFull = `${chiave}:00`; // "YYYY-MM-DD HH:MM:00"
 
   // Transazione: evita la doppia prenotazione dello stesso slot.
+  let infoA;
   db.exec('BEGIN IMMEDIATE');
   try {
     const occupato = db
@@ -393,7 +394,7 @@ app.post('/api/prenota', (req, res) => {
         trattamento
       );
 
-    const infoA = db
+    infoA = db
       .prepare(
         `INSERT INTO appuntamenti (richiesta_id, sede_id, data_ora, stato)
          VALUES (?, ?, ?, 'programmato')`
@@ -401,16 +402,41 @@ app.post('/api/prenota', (req, res) => {
       .run(infoR.lastInsertRowid, sedeId, dataOraFull);
 
     db.exec('COMMIT');
-    res.status(201).json({
-      appuntamento_id: infoA.lastInsertRowid,
-      data_ora: dataOraFull,
-      sede: sede.nome,
-      nome: b.nome.trim(),
-    });
   } catch (e) {
     db.exec('ROLLBACK');
-    res.status(500).json({ errors: ['Errore durante la prenotazione: ' + e.message] });
+    return res.status(500).json({ errors: ['Errore durante la prenotazione: ' + e.message] });
   }
+
+  // Email di conferma al cliente (best-effort: non blocca la prenotazione).
+  // Inviata davvero solo se Brevo è configurato; altrimenti resta silenziosa.
+  const nome = b.nome.trim();
+  const email = b.email.trim();
+  let email_inviata = false;
+  if (process.env.BREVO_API_KEY && process.env.MITTENTE_EMAIL) {
+    const oggetto = `Conferma appuntamento - ${sede.nome}`;
+    const messaggio =
+      `Gentile ${nome},\n\n` +
+      `la sua prenotazione è stata registrata con successo.\n\n` +
+      `• Sede: ${sede.nome}\n` +
+      `• Data e ora: ${chiave}\n` +
+      `• Trattamento: ${trattamento}\n\n` +
+      `La aspettiamo. Per modifiche o disdette può rispondere a questa email.\n\n` +
+      `Il Mondo del Sorriso`;
+    try {
+      await inviaEmailBrevo(email, nome, oggetto, messaggio);
+      email_inviata = true;
+    } catch (e) {
+      console.error('Email di conferma prenotazione non inviata:', e.message);
+    }
+  }
+
+  res.status(201).json({
+    appuntamento_id: infoA.lastInsertRowid,
+    data_ora: dataOraFull,
+    sede: sede.nome,
+    nome,
+    email_inviata,
+  });
 });
 
 // --- Avvio del server ------------------------------------------------------

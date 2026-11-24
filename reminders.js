@@ -59,7 +59,7 @@ function destinatarioPerCanale(app, canale) {
 
 // Invio reale di un'email tramite l'API di Brevo (HTTP, nessuna libreria).
 // Richiede le variabili d'ambiente BREVO_API_KEY e MITTENTE_EMAIL.
-async function inviaEmailBrevo(destinatario, nome, oggetto, messaggio) {
+export async function inviaEmailBrevo(destinatario, nome, oggetto, messaggio) {
   const r = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
