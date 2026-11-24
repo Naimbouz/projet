@@ -1,0 +1,120 @@
+/* Stili specifici della pagina di prenotazione cliente.
+   Riusa le variabili e i componenti di style.css (topbar, bottoni, toast). */
+
+.prenota-main { padding: 20px 24px 48px; max-width: 1100px; margin: 0 auto; }
+
+.numero-verde {
+  font-weight: 700;
+  color: #16a34a;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.sede-pick { max-width: 360px; }
+.sede-pick select { margin-top: 6px; }
+
+/* Legenda */
+.legenda {
+  display: inline-block;
+  width: 12px; height: 12px;
+  border-radius: 3px;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+.legenda.libero { background: var(--brand); }
+.legenda.occupato { background: #e5e7eb; border: 1px solid var(--border); }
+
+/* Calendario: una colonna/riquadro per giorno */
+.calendario {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+.giorno {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.giorno h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--brand-dark);
+  text-transform: capitalize;
+}
+.giorno .data-piccola { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+}
+.slot {
+  border: 1px solid var(--brand);
+  background: var(--card);
+  color: var(--brand-dark);
+  border-radius: 8px;
+  padding: 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background .12s, transform .05s;
+}
+.slot:hover { background: var(--accent); }
+.slot:active { transform: scale(.96); }
+.slot.occupato {
+  border-color: var(--border);
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+/* Overlay + modale */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  z-index: 300;
+}
+.modal {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+.modal h2 { margin: 0 0 8px; color: var(--brand-dark); font-size: 20px; }
+.slot-scelto { margin: 0 0 16px; font-size: 15px; }
+.muted { color: var(--muted); }
+.modal label { margin-bottom: 14px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 8px; }
+.modal-actions .btn-primary,
+.modal-actions .btn-secondary { flex: 1; }
+
+/* Successo */
+.successo-box { text-align: center; }
+.check {
+  width: 64px; height: 64px;
+  margin: 4px auto 12px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  font-size: 34px;
+  line-height: 64px;
+}
+.successo-box h2 { color: var(--ok); }
+.successo-box .btn-primary { margin-top: 18px; width: 100%; }
+
+/* --- Mobile --- */
+@media (max-width: 640px) {
+  .prenota-main { padding: 16px; }
+  .calendario { grid-template-columns: 1fr; }
+  .slot-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); }
+  .numero-verde { font-size: 14px; }
+  .modal { padding: 18px; }
+}
