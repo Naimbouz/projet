@@ -214,7 +214,92 @@ input, select, textarea {
 
 select.stato-select { padding: 4px 8px; font-size: 13px; }
 
-@media (max-width: 600px) {
-  .topbar, main, .tabs, .utm-banner { padding-left: 16px; padding-right: 16px; }
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+/* --- Tablet (≤ 900px) --- */
+@media (max-width: 900px) {
+  .topbar, main, .tabs { padding-left: 16px; padding-right: 16px; }
   .utm-banner { margin-left: 16px; margin-right: 16px; }
+  .panel { padding: 18px; }
+}
+
+/* --- Phone (≤ 640px) --- */
+@media (max-width: 640px) {
+  /* Topbar: brand sopra, azioni sotto */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .topbar-right { width: 100%; justify-content: space-between; }
+  .brand h1 { font-size: 18px; }
+
+  /* Onglets: barre scrollable orizzontale (stile app) */
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-top: 12px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    white-space: nowrap;
+  }
+
+  main { padding-bottom: 32px; }
+  .panel {
+    padding: 16px;
+    border-radius: 10px;   /* angolo pieno: le linguette scorrono via */
+  }
+  .panel h3 { margin-top: 22px; }
+
+  /* Form e filtri: ogni campo a tutta larghezza */
+  .form-row { flex-direction: column; gap: 0; }
+  .form-row > label { flex: 1 1 auto; }
+  .filters { flex-direction: column; align-items: stretch; gap: 10px; }
+  .filters label { flex: 1 1 auto; }
+
+  /* Evita lo zoom automatico su iOS (font < 16px sui campi) */
+  input, select, textarea { font-size: 16px; }
+
+  /* Pulsanti principali a tutta larghezza, comodi al tocco */
+  .btn-primary, .btn-secondary {
+    width: 100%;
+    padding: 12px 16px;
+  }
+  .filters .btn-secondary { width: 100%; }
+  .esito { display: block; margin: 10px 0 0; }
+
+  /* Tabelle: scorrimento orizzontale invece di sfondare la pagina */
+  .data-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  .data-table th, .data-table td { padding: 10px; }
+
+  /* Mini-form inline (fissa appuntamento): impila i campi */
+  .inline-schedule { flex-wrap: wrap; gap: 6px; }
+  .inline-schedule input { flex: 1 1 100%; }
+
+  /* KPI card: due per riga su schermi stretti */
+  .cards { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .card .value { font-size: 24px; }
+
+  /* Toast a tutta larghezza in basso */
+  .toasts { right: 12px; left: 12px; bottom: 12px; }
+  .toast { text-align: center; }
+}
+
+/* --- Schermi molto stretti (≤ 380px) --- */
+@media (max-width: 380px) {
+  .cards { grid-template-columns: 1fr; }
+  .brand-mark { font-size: 18px; padding: 6px 8px; }
 }
