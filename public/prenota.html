@@ -54,11 +54,12 @@
         <label data-i18n="lbl_telefono">Telefono
           <input type="tel" name="telefono" required placeholder="+378 ..." autocomplete="tel" />
         </label>
-        <label data-i18n="lbl_email">Email (opzionale)
-          <input type="email" name="email" placeholder="nome@example.test" autocomplete="email" />
+        <label data-i18n="lbl_email">Email
+          <input type="email" name="email" required placeholder="nome@example.test" autocomplete="email" />
         </label>
         <label data-i18n="lbl_trattamento">Trattamento
-          <select name="trattamento">
+          <select name="trattamento" required>
+            <option value="" disabled selected data-i18n="tr_scegli">Scegli il trattamento</option>
             <option value="controllo" data-i18n="tr_controllo">controllo</option>
             <option value="igiene" data-i18n="tr_igiene">igiene</option>
             <option value="ortodonzia" data-i18n="tr_ortodonzia">ortodonzia</option>
