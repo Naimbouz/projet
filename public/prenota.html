@@ -14,61 +14,62 @@
       <img class="brand-logo" src="logo.png" alt="Il Mondo del Sorriso — Cliniche Dentali, San Marino" />
       <div>
         <h1>Il Mondo del Sorriso</h1>
-        <p class="tagline">Prenota il tuo appuntamento online</p>
+        <p class="tagline" data-i18n="tagline">Prenota il tuo appuntamento online</p>
       </div>
     </div>
     <div class="topbar-right">
+      <button id="btn-lang" class="btn-lang" title="Tradurre in francese">FR</button>
       <span class="numero-verde">☎ 800 22 22 88</span>
     </div>
   </header>
 
   <main class="prenota-main">
     <section class="form-card">
-      <label class="sede-pick">Scegli la sede
+      <label class="sede-pick" data-i18n="lbl_sede">Scegli la sede
         <select id="sel-sede"></select>
       </label>
       <p class="hint">
-        <span class="legenda libero"></span> libero &nbsp;·&nbsp;
-        <span class="legenda occupato"></span> riservato &nbsp;·&nbsp;
-        tocca uno slot <strong>libero</strong> per prenotare.
+        <span class="legenda libero"></span> <span data-i18n="leg_libero">libero</span> &nbsp;·&nbsp;
+        <span class="legenda occupato"></span> <span data-i18n="leg_occupato">riservato</span> &nbsp;·&nbsp;
+        <span data-i18n="leg_istruzione">tocca uno slot libero per prenotare.</span>
       </p>
     </section>
 
     <div id="calendario" class="calendario"></div>
-    <p id="vuoto" class="hint" hidden>Nessuno slot disponibile per questa sede nei prossimi giorni.</p>
+    <p id="vuoto" class="hint" hidden data-i18n="vuoto">Nessuno slot disponibile per questa sede nei prossimi giorni.</p>
   </main>
 
   <!-- Pannello di conferma prenotazione -->
   <div id="overlay" class="overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <h2 id="modal-title">Conferma prenotazione</h2>
+      <h2 id="modal-title" data-i18n="modal_titolo">Conferma prenotazione</h2>
       <p class="slot-scelto">
         <strong id="slot-label"></strong><br />
         <span id="sede-label" class="muted"></span>
       </p>
       <form id="form-prenota">
-        <label>Nome e cognome
+        <label data-i18n="lbl_nome">Nome e cognome
           <input type="text" name="nome" required maxlength="100" autocomplete="name" />
         </label>
-        <label>Telefono
+        <label data-i18n="lbl_telefono">Telefono
           <input type="tel" name="telefono" required placeholder="+378 ..." autocomplete="tel" />
         </label>
-        <label>Email (opzionale)
+        <label data-i18n="lbl_email">Email (opzionale)
           <input type="email" name="email" placeholder="nome@example.test" autocomplete="email" />
         </label>
-        <label>Trattamento
+        <label data-i18n="lbl_trattamento">Trattamento
           <select name="trattamento">
-            <option value="controllo">controllo</option>
-            <option value="igiene">igiene</option>
-            <option value="ortodonzia">ortodonzia</option>
-            <option value="implantologia">implantologia</option>
-            <option value="sbiancamento">sbiancamento</option>
-            <option value="estetica">estetica</option>
+            <option value="controllo" data-i18n="tr_controllo">controllo</option>
+            <option value="igiene" data-i18n="tr_igiene">igiene</option>
+            <option value="ortodonzia" data-i18n="tr_ortodonzia">ortodonzia</option>
+            <option value="implantologia" data-i18n="tr_implantologia">implantologia</option>
+            <option value="sbiancamento" data-i18n="tr_sbiancamento">sbiancamento</option>
+            <option value="estetica" data-i18n="tr_estetica">estetica</option>
           </select>
         </label>
         <div class="modal-actions">
-          <button type="button" id="btn-annulla" class="btn-secondary">Annulla</button>
-          <button type="submit" class="btn-primary">Conferma</button>
+          <button type="button" id="btn-annulla" class="btn-secondary" data-i18n="btn_annulla">Annulla</button>
+          <button type="submit" class="btn-primary" data-i18n="btn_conferma">Conferma</button>
         </div>
         <span id="prenota-esito" class="esito"></span>
       </form>
@@ -79,9 +80,9 @@
   <div id="successo" class="overlay" hidden>
     <div class="modal successo-box">
       <div class="check">✓</div>
-      <h2>Prenotazione confermata!</h2>
+      <h2 data-i18n="successo_titolo">Prenotazione confermata!</h2>
       <p id="successo-testo" class="muted"></p>
-      <button type="button" id="btn-chiudi" class="btn-primary">Prenota un altro appuntamento</button>
+      <button type="button" id="btn-chiudi" class="btn-primary" data-i18n="btn_altro">Prenota un altro appuntamento</button>
     </div>
   </div>
 
